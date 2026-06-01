@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Full benchmark: prepare all caches + compare all models × datasets × preprocess (hold-out + full LOSO).
-set -euo pipefail
+# Full benchmark: prepare all caches + compare all models x datasets x preprocess.
+set -eu
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-if [[ -f .venv/bin/activate ]]; then
+if [ -f .venv/bin/activate ]; then
   # shellcheck disable=SC1091
-  source .venv/bin/activate
+  . .venv/bin/activate
 fi
 
 echo "=== Step 1/2: prepare_data (4 cache variants) ==="
