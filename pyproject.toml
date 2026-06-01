@@ -7,7 +7,7 @@ name = "physionet-mi"
 version = "0.1.0"
 description = "PhysioNet MI left/right classification with EEGMeModel"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "numpy>=1.26,<2.0",
     "scipy>=1.11",

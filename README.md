@@ -4,7 +4,7 @@ Proyecto Python para clasificar **mano izquierda / mano derecha** en PhysioNet M
 
 ## Requisitos
 
-- **Python 3.12.6** recomendado (verificado en macOS x86_64)
+- **Python 3.11+** (Paperspace Gradient usa 3.11; macOS local: 3.12.6 recomendado)
 - **PyTorch** vía extra `[ml]` (en Mac Intel: `torch 2.2.x` + `numpy<2`)
 - Datos MOABB/MNE (~109 sujetos; primera descarga puede tardar)
 
