@@ -10,8 +10,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 
-from physionet_mi.config import ExperimentConfig
-from physionet_mi.constants import dataset_sfreq
+from physionet_mi.config import ExperimentConfig, dataset_sfreq
 from physionet_mi.data.cohort_loader import load_cohort
 from physionet_mi.data.preprocessing import align_n_times_for_cnn, preprocess_train_eval_subject_dicts
 from physionet_mi.data.subject_dict import (

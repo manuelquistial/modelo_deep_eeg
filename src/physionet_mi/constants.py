@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from physionet_mi.config import ExperimentConfig
-
 BINARY_EVENTS = ["left_hand", "right_hand"]
 
 LABEL_NAME_TO_ID = {"left_hand": 1, "right_hand": 2}
@@ -35,12 +33,6 @@ DEFAULT_FREQ_BANDS = [
 ]
 
 SUPPORTED_DATASETS = ("physionet", "bnci2014_001")
-
-
-def dataset_sfreq(cfg: ExperimentConfig) -> float:
-    if cfg.data.dataset == "bnci2014_001":
-        return float(cfg.data.bnci_resample)
-    return float(SFREQ_PHYSIONET)
 
 
 def workshop_label_to_class(label: int) -> int:

@@ -11,7 +11,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.preprocessing import StandardScaler
 
-from physionet_mi.config import ExperimentConfig, load_config
+from physionet_mi.config import ExperimentConfig, load_config, dataset_sfreq
 from physionet_mi.constants import class_to_workshop_label
 from physionet_mi.data.cache import load_holdout_arrays
 from physionet_mi.evaluation.reporting import save_run_artifacts
@@ -76,7 +76,6 @@ class BinaryFBCSP:
 
 
 def extract_fbcsp_features(X_dev, y_dev, X_test, cfg: ExperimentConfig):
-    from physionet_mi.constants import dataset_sfreq
 
     bl = cfg.baseline
     fbcsp = BinaryFBCSP(

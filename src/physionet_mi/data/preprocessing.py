@@ -10,8 +10,7 @@ import pandas as pd
 from scipy.linalg import fractional_matrix_power
 from scipy.signal import butter, sosfiltfilt
 
-from physionet_mi.config import ExperimentConfig, PreprocessConfig
-from physionet_mi.constants import dataset_sfreq
+from physionet_mi.config import ExperimentConfig, PreprocessConfig, dataset_sfreq
 from physionet_mi.data.moabb_loader import SubjectRecord
 from physionet_mi.data.subject_dict import (
     flatten_subject_dict,

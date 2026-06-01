@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from physionet_mi.constants import BINARY_EVENTS, DEFAULT_FREQ_BANDS
+from physionet_mi.constants import BINARY_EVENTS, DEFAULT_FREQ_BANDS, SFREQ_PHYSIONET
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -204,3 +204,10 @@ class ExperimentConfig:
 
     def outputs_path(self) -> Path:
         return self.resolve_path(self.outputs_dir)
+
+
+def dataset_sfreq(cfg: ExperimentConfig) -> float:
+    """Sampling rate for the active dataset (Hz)."""
+    if cfg.data.dataset == "bnci2014_001":
+        return float(cfg.data.bnci_resample)
+    return float(SFREQ_PHYSIONET)
