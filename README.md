@@ -22,6 +22,19 @@ MOABB declara `numpy>=2`, pero en Mac Intel convive con `numpy 1.26` y PyTorch 2
 
 PyTorch aún no publica wheels para 3.14. Usa 3.12 hasta que estén disponibles.
 
+### Paperspace Gradient (GPU)
+
+Gradient suele tener driver CUDA **12.4**. Si `torch.cuda.is_available()` da `False` tras `pip install -e ".[ml,dev]"`, reinstala PyTorch con CUDA 12.4 **antes** o **después** del resto:
+
+```bash
+source .venv/bin/activate
+pip install -e ".[dev]"   # sin torch
+pip install torch --index-url https://download.pytorch.org/whl/cu124
+python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
+```
+
+Instala el resto de dependencias ML si hace falta: `pip install -e .` (editable, sin reinstalar torch).
+
 ## Instalación
 
 ```bash
