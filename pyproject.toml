@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "physionet-mi"
+version = "0.1.0"
+description = "PhysioNet MI left/right classification with EEGMeModel"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "numpy>=1.26,<2.0",
+    "scipy>=1.11",
+    "scikit-learn>=1.4",
+    "pandas>=2.0",
+    "mne>=1.6",
+    "moabb>=1.0",
+    "matplotlib>=3.8",
+    "pyyaml>=6.0",
+    "tqdm>=4.66",
+    "joblib>=1.3",
+]
+
+[project.optional-dependencies]
+# MOABB declares numpy>=2 but runs on numpy 1.26 with torch 2.2 on macOS x86_64.
+ml = [
+    "torch>=2.2,<2.3; platform_machine == 'x86_64' and sys_platform == 'darwin'",
+    "torch>=2.0; platform_machine == 'arm64' or sys_platform != 'darwin'",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4",
+]
+[project.scripts]
+physionet-prepare = "physionet_mi.cli.prepare_data:main"
+physionet-train-holdout = "physionet_mi.cli.train_holdout:main"
+physionet-train-loso = "physionet_mi.cli.train_loso:main"
+physionet-baseline-lda = "physionet_mi.cli.run_baseline_lda:main"
+physionet-ablation = "physionet_mi.cli.run_ablation:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"

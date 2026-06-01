@@ -1,0 +1,66 @@
+data:
+  mne_data_dir: "data/mne"
+  subject_ids: null
+  binary_events: ["left_hand", "right_hand"]
+  cache_dir: "data/processed"
+
+preprocess:
+  use_ea: false
+  highpass_hz: 4.0
+  highpass_order: 4
+  outlier_uv: 800.0
+  auto_detect_outlier_units: true
+  crop_mode: "crop"
+  ea_reg: 1.0e-10
+  ea_verify_enabled: true
+
+split:
+  test_size: 0.20
+  random_state: 42
+  val_ratio: 0.15
+
+model:
+  n_channels: 64
+  n_times: 480
+  f1: 7
+  embed_dim: 32
+  num_classes: 2
+  dropout: 0.25
+
+train:
+  batch_size: 32
+  lr: 0.001
+  max_epochs: 100
+  early_stopping_patience: 20
+  scheduler_patience: 10
+  scheduler_factor: 0.1
+  seed: 42
+  device: "auto"
+  trial_wise_normalize: true
+  use_triplet: false
+
+baseline:
+  freq_bands:
+    - [4, 8]
+    - [8, 12]
+    - [12, 16]
+    - [16, 20]
+    - [20, 24]
+    - [24, 28]
+    - [28, 32]
+    - [32, 36]
+  bandpass_order: 5
+  n_csp_components: 4
+  fbcsp_reg: "ledoit_wolf"
+  fbcsp_norm_trace: true
+  feature_selection_k: 16
+  use_feature_selection: true
+
+eval:
+  metrics:
+    - accuracy
+    - balanced_accuracy
+    - macro_f1
+    - kappa
+
+outputs_dir: "outputs"

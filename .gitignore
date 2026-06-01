@@ -1,0 +1,17 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+/data/
+/outputs/
+*.npy
+embeddings_subject_*.npy
+labels_subject_*.npy
+preds_subject_*.npy
+subjects_subject_*.npy
+temporal_weights_subject_*.npy
+all_local_features_*.npy
+all_global_features_*.npy
+.DS_Store
