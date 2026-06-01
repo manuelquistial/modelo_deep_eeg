@@ -50,10 +50,18 @@ def load_config(config_path: str | Path, project_root: Path | None = None) -> "E
 
 @dataclass
 class DataConfig:
+    dataset: str = "physionet"  # physionet | bnci2014_001
     mne_data_dir: str = "data/mne"
     subject_ids: list[int] | None = None
     binary_events: list[str] = field(default_factory=lambda: list(BINARY_EVENTS))
     cache_dir: str = "data/processed"
+    # BNCI2014_001 (MOABB) — same defaults as modelo_bilstm
+    bnci_tmin: float = 0.0
+    bnci_tmax: float = 4.0
+    bnci_resample: float = 125.0
+    bnci_fmin: float = 1.0
+    bnci_fmax: float = 40.0
+    bnci_n_classes: int = 2
 
 
 @dataclass
@@ -77,12 +85,29 @@ class SplitConfig:
 
 @dataclass
 class ModelConfig:
+    name: str = "eegme"  # eegme | eegnet
     n_channels: int = 64
     n_times: int = 480
     f1: int = 7
     embed_dim: int = 32
     num_classes: int = 2
     dropout: float = 0.25
+    # EEGNet (Lawhern et al. 2018 — ported from modelo_bilstm)
+    eegnet_F1: int = 8
+    eegnet_D: int = 2
+    eegnet_F2: int = 16
+    eegnet_kernel_length: int = 64
+    eegnet_dropout: float = 0.5
+
+
+@dataclass
+class CspSvmConfig:
+    n_components: int = 4
+    svm_kernel: str = "rbf"
+    grid_search: bool = True
+    cv_folds: int = 3
+    seed: int = 42
+    n_jobs: int = -1
 
 
 @dataclass
@@ -125,6 +150,7 @@ class ExperimentConfig:
     model: ModelConfig = field(default_factory=ModelConfig)
     train: TrainConfig = field(default_factory=TrainConfig)
     baseline: BaselineConfig = field(default_factory=BaselineConfig)
+    csp_svm: CspSvmConfig = field(default_factory=CspSvmConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
     outputs_dir: str = "outputs"
     project_root: Path = field(default_factory=Path.cwd)
@@ -139,6 +165,7 @@ class ExperimentConfig:
         model_raw = raw.get("model", {})
         train_raw = raw.get("train", {})
         baseline_raw = raw.get("baseline", {})
+        csp_svm_raw = raw.get("csp_svm", {})
         eval_raw = raw.get("eval", {})
 
         bands = baseline_raw.get("freq_bands", DEFAULT_FREQ_BANDS)
@@ -157,6 +184,7 @@ class ExperimentConfig:
                     "freq_bands": bands_tuples,
                 }
             ),
+            csp_svm=CspSvmConfig(**{**CspSvmConfig().__dict__, **csp_svm_raw}),
             eval=EvalConfig(**{**EvalConfig().__dict__, **eval_raw}),
             outputs_dir=raw.get("outputs_dir", "outputs"),
             project_root=root,

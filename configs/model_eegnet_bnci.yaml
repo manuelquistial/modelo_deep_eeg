@@ -1,0 +1,4 @@
+defaults: preprocess_bnci_no_ea.yaml
+
+model:
+  name: eegnet

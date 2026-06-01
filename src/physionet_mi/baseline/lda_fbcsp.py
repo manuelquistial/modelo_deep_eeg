@@ -76,12 +76,12 @@ class BinaryFBCSP:
 
 
 def extract_fbcsp_features(X_dev, y_dev, X_test, cfg: ExperimentConfig):
-    from physionet_mi.constants import SFREQ
+    from physionet_mi.constants import dataset_sfreq
 
     bl = cfg.baseline
     fbcsp = BinaryFBCSP(
         freq_bands=bl.freq_bands,
-        sfreq=SFREQ,
+        sfreq=dataset_sfreq(cfg),
         n_components=bl.n_csp_components,
         filter_order=bl.bandpass_order,
         reg=bl.fbcsp_reg,

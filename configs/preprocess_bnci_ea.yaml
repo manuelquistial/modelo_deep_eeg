@@ -1,0 +1,4 @@
+defaults: dataset_bnci2014_001.yaml
+
+preprocess:
+  use_ea: true

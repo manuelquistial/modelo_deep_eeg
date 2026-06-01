@@ -75,7 +75,7 @@ class EEGMeModel(nn.Module):
         return logits, embeddings, local_features, global_features
 
 
-def build_model(cfg: ExperimentConfig) -> EEGMeModel:
+def build_eegme(cfg: ExperimentConfig) -> EEGMeModel:
     return EEGMeModel(
         C=cfg.model.n_channels,
         T=cfg.model.n_times,
@@ -84,3 +84,7 @@ def build_model(cfg: ExperimentConfig) -> EEGMeModel:
         num_classes=cfg.model.num_classes,
         dropout=cfg.model.dropout,
     )
+
+
+# Backward compatibility
+build_model = build_eegme

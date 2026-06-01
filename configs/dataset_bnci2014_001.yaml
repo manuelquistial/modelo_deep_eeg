@@ -1,0 +1,4 @@
+defaults: default.yaml
+
+data:
+  dataset: bnci2014_001

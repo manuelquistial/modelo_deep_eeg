@@ -1,8 +1,15 @@
 data:
+  dataset: physionet
   mne_data_dir: "data/mne"
   subject_ids: null
   binary_events: ["left_hand", "right_hand"]
   cache_dir: "data/processed"
+  bnci_tmin: 0.0
+  bnci_tmax: 4.0
+  bnci_resample: 125.0
+  bnci_fmin: 1.0
+  bnci_fmax: 40.0
+  bnci_n_classes: 2
 
 preprocess:
   use_ea: false
@@ -20,12 +27,18 @@ split:
   val_ratio: 0.15
 
 model:
+  name: eegme
   n_channels: 64
   n_times: 480
   f1: 7
   embed_dim: 32
   num_classes: 2
   dropout: 0.25
+  eegnet_F1: 8
+  eegnet_D: 2
+  eegnet_F2: 16
+  eegnet_kernel_length: 64
+  eegnet_dropout: 0.5
 
 train:
   batch_size: 32
@@ -55,6 +68,14 @@ baseline:
   fbcsp_norm_trace: true
   feature_selection_k: 16
   use_feature_selection: true
+
+csp_svm:
+  n_components: 4
+  svm_kernel: rbf
+  grid_search: true
+  cv_folds: 3
+  seed: 42
+  n_jobs: -1
 
 eval:
   metrics:

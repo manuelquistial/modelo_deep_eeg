@@ -11,7 +11,8 @@ import joblib
 import numpy as np
 
 from physionet_mi.config import ExperimentConfig
-from physionet_mi.data.moabb_loader import load_physionet_cohort
+from physionet_mi.constants import dataset_sfreq
+from physionet_mi.data.cohort_loader import load_cohort
 from physionet_mi.data.preprocessing import align_n_times_for_cnn, preprocess_train_eval_subject_dicts
 from physionet_mi.data.subject_dict import (
     split_subjects_holdout,
@@ -29,7 +30,8 @@ def _cache_key(cfg: ExperimentConfig, n_subjects: int) -> str:
         else hashlib.md5(str(sorted(cfg.data.subject_ids)).encode()).hexdigest()[:8]
     )
     ea = "ea" if cfg.preprocess.use_ea else "no_ea"
-    return f"physionet_lr_{ea}_{n_subjects}sub_{subject_part}"
+    ds = cfg.data.dataset.replace("/", "_")
+    return f"{ds}_lr_{ea}_{n_subjects}sub_{subject_part}"
 
 
 def cache_dir_for(cfg: ExperimentConfig, n_subjects: int) -> Path:
@@ -40,7 +42,7 @@ def build_and_cache_holdout(cfg: ExperimentConfig, force: bool = False) -> Path:
     """Load MOABB, preprocess, split hold-out, save npz arrays."""
     out_dir = cache_dir_for(cfg, n_subjects=0)  # placeholder, updated after load
 
-    subj_data, ch_names = load_physionet_cohort(cfg)
+    subj_data, ch_names = load_cohort(cfg)
     n_channels = len(ch_names)
     out_dir = cache_dir_for(cfg, len(subj_data))
     holdout_dir = out_dir / "holdout"
@@ -92,8 +94,10 @@ def build_and_cache_holdout(cfg: ExperimentConfig, force: bool = False) -> Path:
     joblib.dump(subj_data, out_dir / "subject_dict_raw.joblib")
 
     meta = {
+        "dataset": cfg.data.dataset,
         "n_subjects": len(subj_data),
         "n_channels": n_channels,
+        "sfreq": dataset_sfreq(cfg),
         "common_n_times": model_n_times,
         "common_n_times_raw": common_n_times_raw,
         "model_n_times": model_n_times,
@@ -111,9 +115,10 @@ def _pick_holdout_cache_dir(cfg: ExperimentConfig) -> Path | None:
     """Select the best matching cache directory for this config."""
     cache_root = cfg.cache_path()
     ea_flag = "ea" if cfg.preprocess.use_ea else "no_ea"
+    ds = cfg.data.dataset.replace("/", "_")
     candidates = [
         p
-        for p in cache_root.glob(f"physionet_lr_{ea_flag}_*")
+        for p in cache_root.glob(f"{ds}_lr_{ea_flag}_*")
         if (p / "meta.json").exists() and (p / "holdout").exists()
     ]
     if not candidates:

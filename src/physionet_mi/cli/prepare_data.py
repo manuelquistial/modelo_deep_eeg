@@ -1,4 +1,4 @@
-"""Prepare and cache PhysioNet hold-out arrays."""
+"""Prepare and cache hold-out arrays (PhysioNet or BNCI2014_001 via config)."""
 
 import argparse
 from pathlib import Path
@@ -10,7 +10,7 @@ from physionet_mi.utils.logging import setup_logging
 
 def main(argv: list[str] | None = None) -> None:
     setup_logging()
-    parser = argparse.ArgumentParser(description="Prepare PhysioNet MI cache")
+    parser = argparse.ArgumentParser(description="Prepare dataset cache (PhysioNet or BNCI)")
     parser.add_argument("--config", type=str, default="configs/preprocess_no_ea.yaml")
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--project-root", type=str, default=None)

@@ -11,7 +11,7 @@ from scipy.linalg import fractional_matrix_power
 from scipy.signal import butter, sosfiltfilt
 
 from physionet_mi.config import ExperimentConfig, PreprocessConfig
-from physionet_mi.constants import SFREQ
+from physionet_mi.constants import dataset_sfreq
 from physionet_mi.data.moabb_loader import SubjectRecord
 from physionet_mi.data.subject_dict import (
     flatten_subject_dict,
@@ -276,11 +276,12 @@ def preprocess_train_eval_subject_dicts(
         verbose=False,
     )
 
+    sfreq = dataset_sfreq(cfg)
     train_hp = apply_highpass_filter(
-        train_clean, SFREQ, pp.highpass_hz, pp.highpass_order, verbose=verbose
+        train_clean, sfreq, pp.highpass_hz, pp.highpass_order, verbose=verbose
     )
     eval_hp = apply_highpass_filter(
-        eval_clean, SFREQ, pp.highpass_hz, pp.highpass_order, verbose=False
+        eval_clean, sfreq, pp.highpass_hz, pp.highpass_order, verbose=False
     )
 
     train_trials = [t for s in train_hp.values() for t in s["trials"]]

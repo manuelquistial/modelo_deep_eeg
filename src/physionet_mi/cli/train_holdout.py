@@ -7,7 +7,7 @@ from physionet_mi.training.holdout import main as run_main
 
 
 def main(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Train hold-out EEGMeModel")
+    parser = argparse.ArgumentParser(description="Train hold-out (eegme or eegnet via config)")
     parser.add_argument("--config", type=str, default="configs/preprocess_no_ea.yaml")
     parser.add_argument("--run-name", type=str, default=None)
     parser.add_argument("--project-root", type=str, default=None)

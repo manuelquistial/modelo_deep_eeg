@@ -22,7 +22,7 @@ from physionet_mi.data.subject_dict import (
 from physionet_mi.datasets.eeg_dataset import EEGDataset, make_dataloader
 from physionet_mi.evaluation.metrics import compute_metrics, predict_loader
 from physionet_mi.evaluation.reporting import save_run_artifacts
-from physionet_mi.models.eegme import build_model
+from physionet_mi.models.registry import build_model, default_run_prefix
 from physionet_mi.training.trainer import fit
 from physionet_mi.utils.device import get_device
 from physionet_mi.utils.logging import setup_logging
@@ -94,6 +94,8 @@ def run_loso(
     summary = {
         "protocol": "loso",
         "use_ea": cfg.preprocess.use_ea,
+        "dataset": cfg.data.dataset,
+        "model": cfg.model.name,
         "n_folds": len(fold_metrics),
         "accuracy_mean": float(df["accuracy"].mean()),
         "accuracy_std": float(df["accuracy"].std()),
@@ -116,5 +118,5 @@ def main(config_path: str, run_name: str | None = None, max_folds: int | None = 
     config_path_p = Path(config_path).resolve()
     root = project_root or config_path_p.parent.parent
     cfg = load_config(config_path_p, project_root=root)
-    name = run_name or f"dl_{'ea' if cfg.preprocess.use_ea else 'no_ea'}_loso"
+    name = run_name or f"{default_run_prefix(cfg)}_loso"
     run_loso(cfg, name, max_folds=max_folds)

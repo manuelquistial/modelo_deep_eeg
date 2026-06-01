@@ -1,0 +1,9 @@
+defaults: preprocess_ea.yaml
+
+model:
+  name: eegnet
+  eegnet_F1: 8
+  eegnet_D: 2
+  eegnet_F2: 16
+  eegnet_kernel_length: 64
+  eegnet_dropout: 0.5

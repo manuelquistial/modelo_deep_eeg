@@ -36,6 +36,8 @@ physionet-prepare = "physionet_mi.cli.prepare_data:main"
 physionet-train-holdout = "physionet_mi.cli.train_holdout:main"
 physionet-train-loso = "physionet_mi.cli.train_loso:main"
 physionet-baseline-lda = "physionet_mi.cli.run_baseline_lda:main"
+physionet-baseline-csp-svm = "physionet_mi.cli.run_baseline_csp_svm:main"
+physionet-compare-datasets = "physionet_mi.cli.compare_datasets:main"
 physionet-ablation = "physionet_mi.cli.run_ablation:main"
 
 [tool.setuptools.packages.find]

@@ -1,4 +1,4 @@
-"""Run full ablation: no_ea/ea x holdout/loso (+ LDA holdout)."""
+"""Run full ablation: baselines + DL models × datasets × preprocess × holdout/loso."""
 
 import argparse
 import json
@@ -6,49 +6,59 @@ from pathlib import Path
 
 import pandas as pd
 
-from physionet_mi.baseline.lda_fbcsp import run_lda_holdout
-from physionet_mi.config import load_config
-from physionet_mi.training.holdout import run_holdout
-from physionet_mi.training.loso import run_loso
+from physionet_mi.evaluation.compare import run_pipeline_comparison
+from physionet_mi.evaluation.config_matrix import SUPPORTED_DATASETS, SUPPORTED_PREPROCESS
 from physionet_mi.utils.logging import setup_logging
+
+
+def _parse_csv_list(value: str) -> list[str]:
+    return [item.strip() for item in value.split(",") if item.strip()]
 
 
 def main(argv: list[str] | None = None) -> None:
     setup_logging()
-    parser = argparse.ArgumentParser(description="Run ablation study")
+    parser = argparse.ArgumentParser(
+        description="Run ablation across models, datasets, and preprocess variants"
+    )
+    parser.add_argument(
+        "--datasets",
+        type=str,
+        default="physionet",
+        help=f"Comma-separated datasets ({', '.join(SUPPORTED_DATASETS)})",
+    )
+    parser.add_argument(
+        "--preprocess",
+        type=str,
+        default="ea,no_ea",
+        help=f"Comma-separated preprocess variants ({', '.join(SUPPORTED_PREPROCESS)})",
+    )
     parser.add_argument("--project-root", type=str, default=None)
-    parser.add_argument("--max-folds", type=int, default=3, help="LOSO folds for dev runs")
+    parser.add_argument("--max-folds", type=int, default=3, help="LOSO folds (ignored if --full-loso)")
+    parser.add_argument(
+        "--full-loso",
+        action="store_true",
+        help="LOSO on all subjects (slow)",
+    )
     parser.add_argument("--skip-loso", action="store_true")
     parser.add_argument("--skip-lda", action="store_true")
+    parser.add_argument("--skip-csp-svm", action="store_true")
+    parser.add_argument("--skip-eegnet", action="store_true")
+    parser.add_argument("--force-cache", action="store_true")
     args = parser.parse_args(argv)
 
     root = Path(args.project_root).resolve() if args.project_root else Path.cwd()
-    rows = []
-
-    for use_ea, cfg_name in [(False, "preprocess_no_ea.yaml"), (True, "preprocess_ea.yaml")]:
-        cfg_path = root / "configs" / cfg_name
-        cfg = load_config(cfg_path, project_root=root)
-        tag = "ea" if use_ea else "no_ea"
-
-        m = run_holdout(cfg, f"dl_{tag}_holdout")
-        rows.append({"run": f"dl_{tag}_holdout", "use_ea": use_ea, "protocol": "holdout", **m})
-
-        if not args.skip_loso:
-            s = run_loso(cfg, f"dl_{tag}_loso", max_folds=args.max_folds)
-            rows.append({
-                "run": f"dl_{tag}_loso",
-                "use_ea": use_ea,
-                "protocol": "loso",
-                "accuracy": s["accuracy_mean"],
-                "balanced_accuracy": s["balanced_accuracy_mean"],
-                "macro_f1": s["macro_f1_mean"],
-                "kappa": s["kappa_mean"],
-                "accuracy_std": s["accuracy_std"],
-            })
-
-        if not args.skip_lda and use_ea:
-            m_lda = run_lda_holdout(cfg, f"lda_{tag}_holdout")
-            rows.append({"run": f"lda_{tag}_holdout", "use_ea": use_ea, "protocol": "holdout", **m_lda})
+    max_folds = None if args.full_loso else (None if args.skip_loso else args.max_folds)
+    rows = run_pipeline_comparison(
+        root,
+        datasets=_parse_csv_list(args.datasets),
+        preprocess_variants=_parse_csv_list(args.preprocess),
+        max_folds=max_folds,
+        skip_loso=args.skip_loso,
+        skip_lda=args.skip_lda,
+        skip_csp_svm=args.skip_csp_svm,
+        skip_eegnet=args.skip_eegnet,
+        force_cache=args.force_cache,
+    )
 
     df = pd.DataFrame(rows)
     out = root / "outputs" / "ablation_summary.csv"
@@ -58,6 +68,14 @@ def main(argv: list[str] | None = None) -> None:
         json.dumps(rows, indent=2), encoding="utf-8"
     )
     print(f"Saved ablation summary to {out}")
+    if not df.empty and "accuracy" in df.columns:
+        hold = df[df["protocol"] == "holdout"]
+        print("\nMean accuracy by dataset × preprocess × model (holdout):")
+        print(
+            hold.groupby(["dataset", "preprocess", "model"])["accuracy"]
+            .mean()
+            .sort_values(ascending=False)
+        )
 
 
 if __name__ == "__main__":
