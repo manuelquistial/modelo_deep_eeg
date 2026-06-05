@@ -112,6 +112,8 @@ python scripts/run_all_publishable_experiments.py \
 Resume after interruption: re-run with `--skip-existing`.
 
 - Log: `artifacts/reports/paperspace_execution_log.txt`
+- **Completion marker:** `artifacts/reports/EXECUTION_COMPLETE.txt` (check this after the 6h Paperspace window)
+- Failure marker: `artifacts/reports/EXECUTION_FAILED.txt`
 - Failed runs: `artifacts/failed_runs/failed_runs.csv`
 
 LaTeX **source** stays in `paper/ieee/` (versioned). Generated tables/figures go to `artifacts/paper/`.

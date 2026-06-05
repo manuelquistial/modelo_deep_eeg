@@ -22,3 +22,18 @@ python scripts/run_all_publishable_experiments.py \
   2>&1 | tee artifacts/reports/paperspace_execution_log.txt
 
 echo "Finished publishable EEG-MI experiments"
+
+if [ -f artifacts/reports/EXECUTION_COMPLETE.txt ]; then
+  echo ""
+  echo "SUCCESS: full pipeline completed."
+  echo "Marker file: artifacts/reports/EXECUTION_COMPLETE.txt"
+  cat artifacts/reports/EXECUTION_COMPLETE.txt
+elif [ -f artifacts/reports/EXECUTION_FAILED.txt ]; then
+  echo ""
+  echo "WARNING: pipeline did not complete successfully."
+  echo "Marker file: artifacts/reports/EXECUTION_FAILED.txt"
+  cat artifacts/reports/EXECUTION_FAILED.txt
+else
+  echo ""
+  echo "WARNING: no execution marker found (run may have been interrupted)."
+fi

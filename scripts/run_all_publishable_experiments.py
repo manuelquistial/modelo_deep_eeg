@@ -10,8 +10,10 @@ import platform
 import subprocess
 import sys
 import traceback
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from time import monotonic
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
@@ -299,6 +301,103 @@ def _aggregate_riemannian_from_holdout(
         return False
 
 
+EXECUTION_COMPLETE_NAME = "EXECUTION_COMPLETE.txt"
+EXECUTION_FAILED_NAME = "EXECUTION_FAILED.txt"
+
+
+@dataclass
+class PipelineContext:
+    stage: str
+    stages: list[str]
+    datasets: list[str]
+    models: list[str]
+    seeds: list[int]
+    ea: str
+    skip_existing: bool
+    dry_run: bool
+    layout: dict[str, Path]
+    started_at: str
+    started_monotonic: float = field(default_factory=monotonic)
+    log_path: Path | None = None
+
+
+def _format_duration(seconds: float) -> str:
+    total = int(seconds)
+    hours, rem = divmod(total, 3600)
+    minutes, secs = divmod(rem, 60)
+    if hours:
+        return f"{hours}h {minutes}m {secs}s"
+    if minutes:
+        return f"{minutes}m {secs}s"
+    return f"{secs}s"
+
+
+def _count_failed_runs(failed_csv: Path) -> int:
+    if not failed_csv.exists():
+        return 0
+    try:
+        with failed_csv.open(encoding="utf-8") as fh:
+            rows = sum(1 for _ in csv.DictReader(fh))
+        return rows
+    except Exception:
+        return -1
+
+
+def write_execution_marker(
+    *,
+    status: str,
+    ctx: PipelineContext,
+    failed_csv: Path,
+    error_message: str = "",
+) -> Path:
+    """Write a plain-text marker so Paperspace runs can be verified after shutdown."""
+    reports = ctx.layout["reports"]
+    reports.mkdir(parents=True, exist_ok=True)
+    finished_at = _now_iso()
+    duration = _format_duration(monotonic() - ctx.started_monotonic)
+    failed_count = _count_failed_runs(failed_csv)
+
+    if status == "COMPLETE":
+        filename = EXECUTION_COMPLETE_NAME
+        headline = "PUBLISHABLE EEG-MI PIPELINE — EXECUTION COMPLETE"
+        footer = "Safe to shut down the Paperspace machine."
+    else:
+        filename = EXECUTION_FAILED_NAME
+        headline = "PUBLISHABLE EEG-MI PIPELINE — EXECUTION FAILED"
+        footer = "Resume with: ./run_paperspace_publishable_experiments.sh"
+
+    marker = reports / filename
+    lines = [
+        headline,
+        "=" * len(headline),
+        f"Status: {status}",
+        f"Started (UTC): {ctx.started_at}",
+        f"Finished (UTC): {finished_at}",
+        f"Duration: {duration}",
+        f"Stage requested: {ctx.stage}",
+        f"Stages executed: {', '.join(ctx.stages)}",
+        f"Artifacts root: {ctx.layout['root']}",
+        f"Datasets: {', '.join(ctx.datasets)}",
+        f"Models: {', '.join(ctx.models)}",
+        f"Seeds: {', '.join(str(s) for s in ctx.seeds)}",
+        f"EA mode: {ctx.ea}",
+        f"Skip existing: {ctx.skip_existing}",
+        f"Dry run: {ctx.dry_run}",
+        f"Failed subprocesses logged: {failed_count}",
+        f"Failed runs CSV: {failed_csv}",
+        f"Execution log: {ctx.log_path}",
+        f"Implementation summary: {reports / 'implementation_summary.md'}",
+        f"Reproducibility report: {reports / 'reproducibility_report.md'}",
+    ]
+    if error_message:
+        lines.append(f"Error: {error_message}")
+    lines.append("")
+    lines.append(footer)
+    lines.append("")
+    marker.write_text("\n".join(lines), encoding="utf-8")
+    return marker
+
+
 def generate_implementation_summary(layout: dict[str, Path], logger: ExecutionLogger) -> None:
     logger.section("STAGE 14: Generate implementation summary")
     out = layout["reports"] / "implementation_summary.md"
@@ -413,8 +512,23 @@ def main() -> None:
     else:
         stages = [args.stage]
 
+    started_at = _now_iso()
+    ctx = PipelineContext(
+        stage=args.stage,
+        stages=stages,
+        datasets=args.datasets,
+        models=models,
+        seeds=args.seeds,
+        ea=ea,
+        skip_existing=args.skip_existing,
+        dry_run=args.dry_run,
+        layout=layout,
+        started_at=started_at,
+        log_path=log_path,
+    )
+
     logger.section("PUBLISHABLE EEG-MI PIPELINE")
-    logger.write(f"Started: {_now_iso()}")
+    logger.write(f"Started: {started_at}")
     logger.write(f"Stage(s): {', '.join(stages)}")
     logger.write(f"Output root: {output_root}")
     logger.write(f"Datasets: {args.datasets}")
@@ -701,10 +815,40 @@ def main() -> None:
     logger.write(f"Log: {log_path}")
     logger.write(f"Failed runs (if any): {failed_csv}")
 
+    if not args.dry_run:
+        marker = write_execution_marker(
+            status="COMPLETE",
+            ctx=ctx,
+            failed_csv=failed_csv,
+        )
+        logger.write(f"Execution marker: {marker}")
+        print(f"\n>>> PIPELINE COMPLETE — see {marker}\n", flush=True)
+
 
 if __name__ == "__main__":
     try:
         main()
-    except Exception:
+    except Exception as exc:
         traceback.print_exc()
+        try:
+            # Best-effort failure marker if argparse/main partially initialized.
+            reports = ROOT / "artifacts" / "reports"
+            reports.mkdir(parents=True, exist_ok=True)
+            marker = reports / EXECUTION_FAILED_NAME
+            marker.write_text(
+                "\n".join(
+                    [
+                        "PUBLISHABLE EEG-MI PIPELINE — EXECUTION FAILED",
+                        f"Finished (UTC): {_now_iso()}",
+                        f"Error: {exc}",
+                        "",
+                        "Resume with: ./run_paperspace_publishable_experiments.sh",
+                        "",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            print(f"\n>>> PIPELINE FAILED — see {marker}\n", flush=True)
+        except Exception:
+            pass
         sys.exit(1)

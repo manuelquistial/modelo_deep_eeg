@@ -20,6 +20,9 @@ artifacts/
 │   ├── tables/               # Generated LaTeX/CSV tables
 │   └── figures/              # Generated paper figures
 ├── reports/                  # Logs, reproducibility report, implementation notes
+│   ├── paperspace_execution_log.txt
+│   ├── EXECUTION_COMPLETE.txt   # Written when --stage all finishes OK
+│   └── EXECUTION_FAILED.txt     # Written if the pipeline crashes
 ├── failed_runs/              # Failed experiment log (CSV)
 └── smoke/                    # Quick smoke-test outputs
 ```
