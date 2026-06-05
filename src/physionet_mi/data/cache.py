@@ -172,3 +172,62 @@ def load_full_cohort_arrays(cfg: ExperimentConfig, force: bool = False) -> dict:
     y = np.concatenate([holdout["y_dev"], holdout["y_test"]], axis=0)
     groups = np.concatenate([holdout["groups_dev"], holdout["groups_test"]], axis=0)
     return {"X": X, "y": y, "groups": groups, "meta": holdout["meta"]}
+
+
+def load_raw_subject_dict(cfg: ExperimentConfig) -> tuple[dict, list[str], Path]:
+    """Load unprocessed subject dict from cache (build cache if needed)."""
+    out_dir = _pick_holdout_cache_dir(cfg)
+    if out_dir is None:
+        out_dir = build_and_cache_holdout(cfg)
+    raw_path = out_dir / "subject_dict_raw.joblib"
+    if not raw_path.exists():
+        raise FileNotFoundError(
+            f"subject_dict_raw.joblib missing in {out_dir}; rebuild cache with prepare_data"
+        )
+    subj_data = joblib.load(raw_path)
+    meta = json.loads((out_dir / "meta.json").read_text(encoding="utf-8"))
+    ch_names = meta.get("ch_names", [])
+    return subj_data, ch_names, out_dir
+
+
+def build_arrays_for_subject_split(
+    cfg: ExperimentConfig,
+    subj_data: dict,
+    dev_ids: np.ndarray,
+    test_ids: np.ndarray,
+    ch_names: list[str],
+) -> dict:
+    """Preprocess and tensorize arrays for arbitrary subject-disjoint split."""
+    n_channels = len(ch_names)
+    dev_dict = subset_subject_dict(subj_data, dev_ids)
+    test_dict = subset_subject_dict(subj_data, test_ids)
+
+    payload = preprocess_train_eval_subject_dicts(
+        dev_dict, test_dict, cfg, n_channels=n_channels, verbose=False
+    )
+    common_n_times_raw = payload["common_n_times"]
+    model_n_times = align_n_times_for_cnn(common_n_times_raw)
+    cfg.model.n_times = model_n_times
+    cfg.model.n_channels = n_channels
+
+    X_dev, y_dev, groups_dev = to_model_arrays(
+        payload["train_dict"], model_n_times, n_channels, cfg.preprocess.crop_mode
+    )
+    X_test, y_test, groups_test = to_model_arrays(
+        payload["eval_dict"], model_n_times, n_channels, cfg.preprocess.crop_mode
+    )
+    return {
+        "X_dev": X_dev,
+        "y_dev": y_dev,
+        "groups_dev": groups_dev,
+        "X_test": X_test,
+        "y_test": y_test,
+        "groups_test": groups_test,
+        "dev_subject_ids": np.asarray(dev_ids, dtype=int),
+        "test_subject_ids": np.asarray(test_ids, dtype=int),
+        "meta": {
+            "model_n_times": model_n_times,
+            "n_channels": n_channels,
+            "use_ea": cfg.preprocess.use_ea,
+        },
+    }

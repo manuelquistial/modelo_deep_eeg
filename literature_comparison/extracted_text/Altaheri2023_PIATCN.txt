@@ -1,0 +1,692 @@
+           IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 19, NO. 2, FEBRUARY 2023                                                                     2249
+
+
+
+
+               Physics-Informed Attention Temporal
+               Convolutional Network for EEG-Based
+                   Motor Imagery Classification
+                 Hamdi Altaheri , Member, IEEE, Ghulam Muhammad , Senior Member, IEEE,
+                               and Mansour Alsulaiman , Senior Member, IEEE
+
+
+   Abstract—The brain-computer interface (BCI) is a                             of industrial applications spanning from medical applications to
+cutting-edge technology that has the potential to change                        human augmentation [1], [2].
+the world. Electroencephalogram (EEG) motor imagery (MI)                            The brain signal can be recorded using various techniques,
+signal has been used extensively in many BCI applications
+to assist disabled people, control devices or environments,                     such as electroencephalography (EEG). EEG is a noninvasive
+and even augment human capabilities. However, the lim-                          method that records the electrical activities of the brain. The
+ited performance of brain signal decoding is restricting the                    EEG signal is captured on the scalp as a two-dimensional (2-D)
+broad growth of the BCI industry. In this article, we pro-                      matrix of real values (time and channel). EEG is widely used
+pose an attention-based temporal convolutional network
+                                                                                and preferred over other techniques due to its ease of use, low
+(ATCNet) for EEG-based motor imagery classification. The
+ATCNet model utilizes multiple techniques to boost the per-                     cost, low risk, portability, and high temporal resolution, making
+formance of MI classification with a relatively small number                    it suitable for industrial applications.
+of parameters. ATCNet employs scientific machine learning                           Motor imagery (MI) is the activity of thinking about moving a
+to design a domain-specific deep learning model with inter-                     part of the human body without physically moving it. EEG-based
+pretable and explainable features, multihead self-attention
+                                                                                MI (MI-EEG) activities have been employed in a variety of
+to highlight the most valuable features in MI-EEG data, tem-
+poral convolutional network to extract high-level temporal                      medical applications, including stroke rehabilitation, wheelchair
+features, and convolutional-based sliding window to aug-                        control, prostheses control, exoskeleton control, cursor control,
+ment the MI-EEG data efficiently. The proposed model out-                       speller, and thought-to-text conversion. MI-EEG signals have
+performs the current state-of-the-art techniques in the BCI                     also been used in nonmedical applications such as vehicle con-
+Competition IV-2a dataset with an accuracy of 85.38% and
+                                                                                trol, drone control, environment control, smart home, security,
+70.97% for the subject-dependent and subject-independent
+modes, respectively.                                                            gaming, and virtual reality [2]. Therefore, MI-EEG signals have
+                                                                                great applicability in a variety of medical and nonmedical indus-
+   Index Terms—Attention, classification, convolution neu-                      try applications. However, the real-world applications are still
+ral network (CNN), deep learning, electroencephalography
+(EEG), motor imagery, scientific machine learning, temporal                     limited by the decoding performance and generalization ability
+convolution networks (TCN).                                                     of the MI-EEG signal.
+                                                                                    One of the main challenges for the real-world application of
+                                                                                MI-EEG BCI is accurately recognizing human intention from
+                          I. INTRODUCTION
+                                                                                low signal-to-noise ratio and nonstationary brain signals with
+      HE brain-computer interface (BCI) is a system that in-
+T     terprets brain activity and converts it into commands to
+control an external device, such as a wheelchair or a drone. BCI is
+                                                                                various sources of artifacts, including biological artifacts (e.g.,
+                                                                                muscle movements, eye blinking), electronic equipment (e.g.,
+                                                                                computers and wireless devices), and environmental noise (e.g.,
+a cutting-edge technology that has the potential to transform the               light and sound). These artifacts, along with channel correlation,
+world and further enhances the quality of life, with a wide range               subject dependency, and high dimensionality of EEG signals
+                                                                                make the analysis and classification of brain signal a challenging
+   Manuscript received 27 May 2022; revised 7 July 2022; accepted 26            task.
+July 2022. Date of publication 9 August 2022; date of current version               Several conventional machine learning (ML) and deep learn-
+13 December 2022. This work was supported by the Deputyship for
+Research and Innovation, Ministry of Education in Saudi Arabia under            ing (DL) approaches have been proposed to address the diffi-
+Grant DRI-KSU-1354. Paper no. TII-22-2210.(Corresponding author:                culties involved in classifying MI-EEG tasks. Among the con-
+Ghulam Muhammad.)                                                               ventional ML approaches that rely on manual feature extraction,
+   The authors are with the Department of Computer Engineering,
+College of Computer and Information Sciences, King Saud Univer-                 filter bank common spatial patterns (FBCSP) [3], and its variants
+sity, Riyadh 11543, Saudi Arabia (e-mail: haltaheri@ksu.edu.sa; ghu-            achieved the best performance in MI classification. In contrast to
+lam@ksu.edu.sa; msuliman@ksu.edu.sa).                                           conventional methods, DL can learn distinct and latent features
+   Color versions of one or more figures in this article are available at
+https://doi.org/10.1109/TII.2022.3197419.                                       from raw EEG data without the requirement for preprocessing
+   Digital Object Identifier 10.1109/TII.2022.3197419                           or manual feature extraction. DL has been used effectively in a
+
+
+                  1551-3203 © 2022 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+                                See https://www.ieee.org/publications/rights/index.html for more information.
+
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+2250                                                                  IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 19, NO. 2, FEBRUARY 2023
+
+
+
+variety of applications, including image, video, audio, and text                 including noisy data, high dimensionality, and low signal-to-
+analysis [4], [5], [6], [7]. Recently, motivated by the significant              noise. SciML can produce the next wave of data-driven sci-
+success of DL techniques in other applications, many researchers                 entific discovery in the engineering, physical, and medical
+have employed DL algorithms to classify MI tasks.                                sciences [24].
+   In the past five years, the number of studies using DL meth-                     The attention mechanism is an effort to emulate human brain
+ods to classify MI tasks has increased rapidly [2]. Different                    behavior of selectively focusing on a few significant elements
+DL architectures was proposed for MI classification including                    while ignoring others. Integrating the attention mechanism with
+convolutional neural network (CNN) [8], [9], [10], [11], [12],                   DL models helps to focus automatically (by learning) on the
+[13], recurrent neural network (RNN) [14], [15], deep belief                     most important parts of the input data. The first attention-based
+network (DBN) [16], autoencoder (AE) [17], and hybrid DL                         model (RNN model) was proposed by Bahdanau et al. [25],
+models [8], [18]. CNN was the most widely used architecture                      known as additive attention. In the same year, Luong et al.
+for MI classification [2]. Standard CNN models with light [12]                   [26] proposed an attention layer with a multiplication scoring
+and deep architectures [19] have been proposed, as well as many                  function, known as multiplicative attention. In 2017, Google
+other CNN varieties, including inception-based CNN [10], [11],                   researchers proposed a pure attention model with multihead
+residual-based CNN [20], 3D-CNN [20], multiscale CNN [13],                       attention, which consists of several self-attention layers [27].
+multilayer CNN [18], multibranch CNN [9], [20], and attention-                   These attention-based models were originally proposed for nat-
+based CNN [8], [9], [10], [11], [13]. Several other DL models                    ural language processing (NLP) and have subsequently been
+have also been suggested by some studies for classifying MI                      used in other fields. For computer vision, several attention blocks
+tasks. Xu et al. [16] proposed a DBN model based on restricted                   have been proposed, such as squeeze-and-excitation (SE) [28]
+Boltzmann machines for feature extraction and a support vector                   and convolutional block attention module (CBAM) [29].
+machine (SVM) for classification. Hassanpour et al. [17] pro-                       Recently, researchers have used attention-based DL models
+posed a stacked AE (SAE) to classify MI tasks using frequency                    to classify MI-EEG signals [8], [9], [10], [11], [13]. For in-
+features. In other studies, researchers have attempted to extract                stance, Zhang et al. [8] employed self-attention with LSTM and
+temporal information from the MI-EEG signal using recurrent                      graph neural representation to decode MI tasks. Amin et al.
+neural networks. For example, Kumar et al. [14] proposed a                       [10], [11] combined attention layers with inception-CNN and
+long short-term memory (LSTM) model combined with FBCSP                          LSTM. In a more recent study, Altuwaijri et al. [9] proposed
+features and an SVM classifier. In another study, Luo and Chao                   an attention-based multibranch CNN model for classifying MI
+[15] adopted FBCSP features and used them as inputs to a gated                   tasks using raw data. The authors used three SE attention blocks
+recurrent unit (GRU) model. The article showed that the GRU                      as intermediate layers in three CNN branches.
+model performed better than the LSTM. In general, CNN models                        Although the current studies showed promising results in
+have shown better performance in MI task classification than                     decoding MI-EEG signals, the classification performance is still
+other DL models [2], e.g., RNN, SAE, and DBN. Therefore,                         limited and requires further improvement.
+many researchers have suggested integrating CNN with other                          In this article, we propose an attention-based temporal con-
+DL models, such as LSTM [8] and SAE [18], and encouraging                        volutional network, ATCNet, to decode MI-EEG brain signals.
+results have been obtained.                                                      This research utilizes SciML to address domain-specific MI-
+   Recently, a new CNN variant called temporal convolutional                     EEG data challenges, which results in a robust, interpretable,
+network (TCN) was specifically designed for time series mod-                     and explainable DL model specifically designed for decoding
+eling and classification [21]. TCN outperformed other recurrent                  MI-EEG brain signals. The proposed DL model processes the
+networks such as LSTM and GRU in many sequence-related                           MI-EEG data in three steps: first, encode the MI-EEG signal into
+tasks [21]. In contrast to typical CNNs, TCN can exponentially                   a sequence of high-level temporal representations using conven-
+expand the size of the receptive field with a linear increase in                 tional layers, then, highlight the most valuable information in the
+the number of parameters, and unlike RNNs it does not suffer                     temporal sequence using an attention layer, and finally, extract
+from vanishing or exploding gradients. Some recent studies                       high-level temporal features from the highlighted information
+have used TCN architectures to classify MI tasks [22], [23].                     using a temporal convolutional layer. The proposed model uti-
+Ingolfsson et al. [22] proposed a TCN model named EEG-TCN                        lizes a multihead self-attention and convolutional-based sliding
+that combines TCN with the well-known EEGNet architecture                        window to boost the performance of MI classification. This
+[12]. A recent study in [23] attempted to improve the EEG-TCN                    article highlights the following contributions.
+model using the feature fusion technique. Our research is an                         1) We propose a high-performance ATCNet model, which
+ongoing contribution to these works, which utilizes scientific                           utilizes the powerful of TCN, SciML, attention mecha-
+machine learning (SciML) and attention mechanism with TCN                                nism, and convolutional-based sliding window.
+architecture.                                                                        2) Performing sliding window using convolution helps aug-
+   Scientific machine learning is a new field that combines                              ment MI data and efficiently enhance accuracy, by paral-
+machine learning and scientific computing to produce domain-                             lelizing the process and reducing computations.
+aware ML models that are reliable, robust, scalable, and in-                         3) Self-attention helps the DL model to attend to the most
+terpretable. SciML aims to derive insights from scientific data                          effective MI information in the EEG data, and the multiple
+to reduce ML model parameters, prevent overfitting, enhance                              heads help to focus on multiple positions, resulting in
+extrapolation, and overcome domain-specific data challenges,                             multiple attention representations.
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+ALTAHERI et al.: PHYSICS-INFORMED ATTENTION TEMPORAL CONVOLUTIONAL NETWORK                                                                                   2251
+
+
+
+                                                                                   enhances accuracy. The details of ATCNet blocks are described
+                                                                                   in the following sections.
+
+                                                                                   A. Preprocessing and Input Representation
+                                                                                      In this article, we feed raw MI-EEG signals into the proposed
+                                                                                   model without preprocessing, i.e., the full frequency band, all
+                                                                                   channels, and without artifact removal.
+                                                                                      ATCNet model takes as input a motor imagery trial Xi ∈
+                                                                                   RC×T consisting of C channels (EEG electrodes) and T time
+                                                                                   points. The objective of the ATCNet model is to map the input
+                                                                                   MI trial Xi to its corresponding class yi , given a set of m
+                                                                                   labeled MI trials S = {Xi , yi }mi=1 , where yi ∈ {1, . . . , n} is the
+                                                                                   corresponding class label for trial Xi and n is the total number of
+                                                                                   defined classes for set S. For the BCI-2a [30] dataset, T = 1125
+                                                                                   time points, C = 22 EEG channels, n = 4 MI classes, and
+                                                                                   m = 5184 MI trials.
+
+                                                                                   B. Convolutional Block
+                                                                                      The CV block is similar to the EEGNet architecture proposed
+                                                                                   in [12]. CV block differs from EEGNet by using 2-D convolution
+                                                                                   instead of separable convolution, which showed better perfor-
+                                                                                   mance. CV block also uses different parameter values than those
+                                                                                   used in [12].
+                                                                                      CV block consists of three convolutional (conv) layers, as
+                                                                                   shown in Fig. 2. The first layer performs a temporal convolution
+Fig. 1.    Components of the proposed ATCNet model.                                using F1 filters of size (1, KC ), where KC is the filter length
+                                                                                   in the time axis. KC was set to be one-fourth of the sampling
+                                                                                   rate (64 for BCI-2a). This allows the filters to extract temporal
+                                                                                   information associated with frequencies above 4 Hz. The output
+    4) The proposed model achieves outstanding results in the                      of this layer is F1 temporal feature maps. The second layer is
+       BCI Competition IV-2a (BCI-2a) dataset [30].                                a depthwise convolution with F2 filters of size (C, 1), where C
+    5) For reproducibility, the code for this research and the                     is the number of EEG channels. Using depthwise convolution,
+       trained models will be released on GitHub.                                  each filter extracts spatial features (i.e., related to EEG channels)
+       The rest of this article is organized as follows. Section II                from a single temporal feature map. Therefore, the output of this
+       describes the proposed ATCNet model. In Section III,                        layer is F1 × D feature maps, where D is the number of filters
+       we present and discuss the results. Then, Section IV                        linked to each temporal feature map in the previous layer. D
+       concludes this article.                                                     is set empirically to 2. F1 × D determine the output dimension
+                                                                                   of the CV block. The depthwise convolution is followed by an
+                                                                                   average pooling layer of size (1, 8) to abstract the temporal data
+                    II. PROPOSED ATCNET MODEL                                      by a factor of 8. This reduces the sampling rate of the signal to
+   The proposed ATCNet model consists of three main blocks:                        ∼32 Hz. The third convolutional layer consists of F2 filters of
+convolutional (CV) block, attention (AT) block, and temporal                       size (1, KC2 ). KC2 was set to 16 to decode MI activities within
+convolutional (TC) block, as shown in Fig. 1. CV block en-                         500 ms (for 32 Hz sampled data). Finally, a second average
+codes low-level spatio-temporal information within the MI-EEG                      pooling layer with a size of (1, P2 ) is used to reduce the sampling
+signal through three convolutional layers: temporal, channel                       rate to ∼32/P2 Hz. P2 is used to control the length of the temporal
+depthwise, and spatial convolutions. The output of the CV block                    sequence produced by CV block. The second and third conv lay-
+is a temporal sequence with a higher level representation. The                     ers are followed by batch normalization [31] to speed up network
+AT block then highlights the most important information in the                     training and then by exponential linear unit (ELU) activation for
+temporal sequence using a multihead self-attention (MSA). Fi-                      nonlinearity.
+nally, the TC block extracts high-level temporal features within                      CV block output a sequence zi ∈ RTc ×d of temporal repre-
+the temporal sequence using TCN and feeds them into a fully                        sentation consisting of Tc temporal vectors each with dimension
+connected (FC) layer with a SoftMax classifier.                                    d = F2 = F1 × D. We empirically set d to 32. The length of
+   The temporal sequence, output from CV block, can be split                       the temporal sequence zi is determined by
+into multiple windows and each is fed to AT/TC blacks sepa-
+                                                                                                                  Tc = T /8P2                                (1)
+rately. The output of all windows is then concatenated and fed to
+a SoftMax classifier. This helps efficiently augment the data and                  where T refers to the time points of the original EEG signal.
+
+          Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+2252                                                                  IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 19, NO. 2, FEBRUARY 2023
+
+
+
+
+Fig. 2. CV block performs spatio-temporal encoding through three convolutional layers. The CV block receives a raw MI-EEG signal and outputs
+a temporal sequence with TC elements. Each element is a vector of size F2 .
+
+
+                                                                                 is the total number of windows. Each window zw i is then entered
+                                                                                 separately to the later AT block and then to the TC block. The
+                                                                                 window length Tw is determined by
+
+                                                                                                     Tw = Tc − n + 1, Tc > n ≥ 1                          (2)
+
+                                                                                                     Tw = T/8P2 − n + 1.                                  (3)
+
+                                                                                    If the CV block performs two temporal pooling of size P1 = 8
+                                                                                 and P2 = 7, CV will produce a temporal sequence zi consisting
+                                                                                 of Tc = 20 vectors [Eq. (1), where T = 1125]. Each vector
+                                                                                 will represent 56 (8 × 7) time-points in the original MI-EEG
+Fig. 3. Interaction of queries and keys creates attention pooling that
+                                                                                 signal xi . Therefore, performing one step sliding in the zi is
+biases the selection of values.                                                  equivalent to 56 time-steps sliding in the original signal xi .
+
+                                                                                 D. Attention Block
+C. Convolutional-Based Sliding Window (SW)
+                                                                                    In psychology, the cognitive process of selectively focusing
+   Instead of entering the whole Tc samples of zi to the later                   on one or a few things while disregarding others is known as
+layers, a sliding window has been used to divide the temporal                    attention. In deep neural networks, the attention mechanism is
+sequences into multiple windows. This helps to augment the                       an effort to emulate the human brain behavior of selectively
+data and enhance the decoding accuracy. However, the sliding                     focusing on a few significant elements while ignoring others. In
+window raises the computations, because it requires the input                    the visual world, subjects use both volitional and nonvolitional
+data to be passed through the DL model n times (instead of                       cues to selectively focus attention. The former is task-dependent,
+once), where n stands for the number of windows. As a result, the                and the latter is based on the conspicuity and saliency of things
+computations are incremented n times. But in our approach, we                    in the surroundings. Inspired by the voluntary and involuntary
+used a sliding window as integration with convolutional layers                   attention cues, the attention mechanism can be emulated using
+(in the convolutional block). In this approach, convolution com-                 three components: values (sensory inputs), keys (nonvolitional
+putations are performed once for all windows, which reduces                      cues), and queries (volitional cues). The interaction of queries
+training and inference time by parallelizing the process. This                   and keys creates attention pooling that biases the selection of
+technique was originally used in sliding-window-based object                     values, as demonstrated in Fig. 3.
+detection. The convolutional-based sliding window has been                          The attention mechanism can be implemented based on atten-
+described in detail by Schirrmeister et al. [32].                                tion scores or by different machine learning algorithms such as
+   We used a sliding window of length Tw with one step stride                    reinforcement learning. This article adopts an attention scores-
+to divide the temporal sequence zi into multiple windows zw  i ∈                 based approach, i.e., MSA, due to its large success in various
+RTw ×d with w = 1, . . . , n denoting the window index, and n                    fields, such as NLP and computer vision.
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+ALTAHERI et al.: PHYSICS-INFORMED ATTENTION TEMPORAL CONVOLUTIONAL NETWORK                                                                                   2253
+
+
+
+
+                                                                                   Fig. 5.   Architecture of the TCN consisting of two residual blocks.
+Fig. 4.    Multihead self-attention.
+
+                                                                                   The dot product operation, however, necessitates that both the
+   The attention block consists of an MSA layer, as described in                   query and the key have the same vector length. The scoring
+[27]. MSA consists of several self-attention layers (i.e., scaled                  function of scaled dot-product   attention is defined in 10. The
+                                                                                                              √
+dot-product attention) called heads, as shown in Fig. 4. Each                      dot product is divided by dH to ensure that the variance of the
+self-attention layer consists of three main components: query                      dot product remains constant regardless of vector length
+Q, keys K, and values V . Interactions between query and keys                                                              
+produce attention scores that guide selection bias over values.                                         ehtt = a qth , kth ∈ R                 (9)
+The detailed implementation of this interaction is as follows.                                                            T
+                                                                                                                     (qth ) kth
+Given a window representation ziw , encoded by CV block, the                                                  a =      √         ∈ R·                        (10)
+query/key/value vectors are calculated for each batch using                                                               dH
+linear transformation as                                                              For each head, the context vectors of the scaled dot-product
+                          w                                                      attention for a minibatch with n = Tw queries and m = Tw
+         qth = WQh LN zi,t      ∈ RdH , WQh ∈ Rd×dH           (4)
+                                                                                   key-values pairs (global attention) are determined by (11), where
+                             
+         kth = WK h        w
+                     LN zi,t    ∈ R d H , WK
+                                           h
+                                              ∈ Rd×dH         (5)                  keys and queries of length dH and values of length v (in
+                                                                                 this article v = dH = 8). Attention context vectors manage and
+         vth = WVh LN zi,t w
+                                ∈ RdH , WVh ∈ Rd×dH           (6)                  quantify the interdependence either between the input and output
+where LN stands for Layer Normalization [33], t = 1, . . . , Tw                    components (general attention) or within the input components
+is an index over the temporal vectors in window w and Tw is                        (self-attention). In this article, we adopt the self-attention mech-
+the length of the window (the total number of temporal vectors),                   anism as it helps parallel computing attention to all inputs at the
+h = 1, . . . , H is an index over multiple attention heads and                     same time
+                                                                                                          h h T
+H is the total number of heads. The diminution of the attention                        C h = softmax Q √(K         )
+                                                                                                                        V h ∈ R((n =Tw )×(v =dH ))
+head is set empirically to dH = d/2H .                                                                          dH
+
+    Given a query qth ∈ Rq =dH and Tw key-value pairs (k1h , v1h ),                   WhereQ ∈ R      n×dH
+                                                                                                             ,K ∈ R   m×dH
+                                                                                                                            , and V ∈ Rm×v .
+                                                                                                                                                   (11)
+. . . ., (kThw , vThw ) , where kth ∈ Rk =dH and vth ∈ Rv =dH . The
+                                                                                      Then, the MSA is computed by projecting the concatenation
+attention pooling f that generates the context vector cht is defined
+                                                                                   of the context vectors from all heads and adding the result to the
+as a weighted sum of the values vth
+                                                                                   input window ziw using a residual connection, as in
+                           Tw                     
+                                                     Tw                                           
+  cht = f qth , kth , vth =     h h
+                                 αtt  v t ∈ R
+                                                dH
+                                                   ,     h
+                                                        αtt  = 1.
+                                                                                     ziw = WO C 1 , . . . , C H + ziw ∈ RTw ×d , WO ∈ RdH ×d .
+                                  t =1                    t = 1
+                                                                                                                                                   (12)
+                                                               (7)
+                                  h                  h           h
+   The attention weight (scalar) αtt  of the query qt and key kt                 E. Temporal Convolutional Block
+is calculated by applying the SoftMax function on the corre-
+                                                                                      The TC block has the same architecture as the TCN described
+sponding alignment scores ehtt as follows:
+                                                                                 in [22]. TCN consists of a stack of residual blocks. The residual
+                   h         exp ehtt                                           block composes of two dilated causal convolutional layers, each
+   h
+ αtt = softmax ett = Tw                h  ∈R·             (8)                 one followed by batch normalization [31] and ELU activation,
+                              k=1 exp etk
+                                                                                   as shown in Fig. 5.
+   The alignment scores ehtt are calculated using the attention                      Causal convolutions are used to prevent any information from
+scoring function a, as in (9). Distinct selections for the attention               traveling from the future to the past, i.e., the output at time
+scoring function a result in different attention pooling behaviors.                t depends only on the inputs from time t and earlier. Dilated
+Two common scoring functions have been proposed: additive                          convolutions allow the receptive field to be expanded expo-
+attention (Bahdanau attention [25]) and multiplicative attention                   nentially while increasing the network depth. Therefore, dilated
+(Luong attention [26]). In this article, we use multiplicative                     causal convolutions can learn relationships in long sequences.
+attention, specifically scaled dot-product attention defined by                    The residual connection performs an elementwise addition of
+Vaswani et al. [27], which is more computationally efficient.                      the input and output feature map F (x) + x, which is effective
+
+          Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+2254                                                                  IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 19, NO. 2, FEBRUARY 2023
+
+
+
+
+Fig. 6. Visualize a TCN block with a depth of 2, i.e., consisting of two residual blocks, kernel size = 4, and number of filters = 32. The output of
+the first residual block is the input of the second. The receptive field size for this TCN will be 19, so the input length Tw should be ≤ 19. This figure
+shows a sequence of 16 temporal elements ( Tw = 16) entering the TCN.
+
+in deep networks due to its ability to learn the identity function.                                          TABLE I
+                                                                                         HYPERPARAMETER SETTING THAT USED FOR ALL SUBJECTS
+In the residual block, we use identity mapping because the input
+and output dimensions are identical (32), otherwise, a linear
+transformation, i.e., 1 × 1 convolution, is used.
+   The receptive field size (RFS) of the TCN increases exponen-
+tially with the number of stacked residual blocks L due to the
+exponential increase in dilation D with each succeeding block.
+The RFS is controlled by two parameters: the number of residual
+blocks L and the kennel size KT , as defined in
+                                                  
+              RFS = 1 + 2 (KT − 1) 2L − 1 .                    (13)
+   In the proposed ATCNet, the TC block consists of a TCN
+with residual blocks and 32 filters of size KT = 4 for all
+convolutional layers. With this TCN, the RFS is 19, i.e., the                              III. EXPERIMENTAL RESULTS AND DISCUSSION
+TCN can process up to 19 elements in a sequence, as shown in
+                                                                                 A. Selected Dataset and Evaluation Approaches
+Fig. 6. Therefore, the temporal sequence entered in the TC block
+should be less than or equal to 19 to allow TCN to process all                      BCI Competition IV-2a (BCI-2a) dataset [30] is used to train
+temporal information without loss. For sequences that are longer                 and evaluate the proposed model. BCI-2a is a well-known public
+than RFS, they can be split into multiple windows each with a                    MI-EEG dataset created by Graz University of Technology in
+length less than RFS. Each window is then entered separately                     2008. BCI-2a has been widely used in the research community
+into the TC block. In this article, we fixed RFS to 19 and                       and is thus considered a benchmark dataset in MI-EEG decod-
+changed the length of windows entering the TC block (Tw ), as                    ing. It contains a limited number of samples captured under
+defined in (3).                                                                  uncontrolled conditions with a considerable amount of artifacts,
+   Fig. 6 shows a sequence of 16 temporal elements (Tw = 16)                     which makes decoding MI tasks using this dataset a challenging
+entering the TCN. Each element is a vector of size F2 (#filters                  process.
+in CV block). The output of the TCN is the last element in the                      BCI-2a dataset consists of 5184 trials (samples) of MI-EEG
+sequence, which is a vector of size FT (# filters in TCN). In this               data recorded using 22 EEG electrodes from nine subjects (576
+article, F2 = FT = 32. The outputs of the TC block from all                      trials per subject). MI trials last 4 s and were sampled at 250 Hz
+windows are concatenated and then fed to an FC layer with four                   and filtered between 0.5 and 100 Hz. Each trial belongs to one
+neurons, as the number of MI classes, followed by a SoftMax                      of four MI tasks: imagining of movement of the left hand (class
+classifier, as shown in Fig. 1.                                                  1), right hand (class 2), both feet (class 3), and tongue (class
+   Unless otherwise noted, hyperparameters used for all experi-                  4). For each subject, two sessions were recorded on different
+ments in this article are shown in Table I. These parameters were                days. Each session consists of 288 trials per subject. One of
+set empirically based on several experiments and were fixed for                  these sessions is used to train the model and the other for
+all subjects.                                                                    evaluation.
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+ALTAHERI et al.: PHYSICS-INFORMED ATTENTION TEMPORAL CONVOLUTIONAL NETWORK                                                                                2255
+
+
+
+   The proposed model is evaluated using subject-dependent                                                  TABLE II
+                                                                                     CONTRIBUTION OF EACH BLOCK IN THE ATCNET MODEL TO THE
+(subject-specific) and subject-independent approaches. For                        PERFORMANCE OF MI CLASSIFICATION USING THE BCI-2A DATASET. AT:
+subject-dependent, we used the same training and testing data                       ATTENTION, SW: SLIDING WINDOW, TC: TEMPORAL CONVOLUTION
+as the original competition, i.e., 288×9 trials in session 1 for
+training, and 288×9 trials in session 2 for testing. For subject
+independent, we used cross-subject evaluation, known as “leav-
+ing one subject out” (LOSO). In LOSO, the model is trained and
+evaluated by several folds, equal to the number of subjects, and
+for each fold, one subject is used for evaluation and the others for
+training. The LOSO evaluation technique ensures that separate
+subjects (not visible in the training data) are used to evaluate the
+model.
+
+B. Performance Metrics
+    The proposed models in this article are evaluated using accu-
+racy (14), and Kappa score (15)
+                               n
+                                      TPi /Ii
+                     ACC = i=1                                (14)
+                                       n
+where TPi is the true positive, i.e., the number of correctly
+predicted samples in class i, li is the number of samples in class
+i, and n indicates the number of classes
+                                  1  Pa − Pe
+                                      n
+                   κ_score =                                           (15)
+                                  n a = 1 1 − Pe
+where n is the number of classes, Pa is the actual percentage
+of agreement, and Pe is the expected percentage chance of
+agreement.
+                                                                                Fig. 7. Accuracy on BCI-2a as a function of the number of windows
+                                                                                using three temporal sequences of length 17, 20, and 28. These se-
+C. Training Procedure                                                           quences were studied while varying the number of windows from one
+                                                                                window, that is, the whole sequence, to 16 windows. Each window has
+   The models were trained and tested by a single GPU, Nvidia                   a different length (Tw ) depending on the length of the original sequence
+GTX 2070 8 GB, using the TensorFlow framework. For all                          (Tc ). The 20-sample sequence showed better performance than the
+experiments, we used the following training configurations.                     others and the best performance was using five windows.
+Glorot uniform initializer is used to initialize the weights. The
+models are trained using the Adam optimizer with a learning rate                accuracy if followed by TC block. If the TC block is removed, the
+of 0.0009, batch size of 64, and a categorical cross-entropy loss               accuracy drops to 79.44%, which is lower than the accuracy after
+over 1000 epochs with a patience of 300. These hyperparameters                  removing both AT and TC blocks, 82.60%, and even removing
+were determined through several experiments to help the models                  all blocks, 81.71%. This means that placing the attention layer
+generalize well.                                                                at the end of the model harms the performance unless followed
+   The proposed ATCNet model achieves an overall accuracy of                    by an additional classification layer.
+85.38% and a κ-score of 0.81, which is better than the state-of-
+the-art results.                                                                E. Varying the Temporal Sequence Length
+                                                                                   In the following experiments, we investigate the effect of
+D. Contributions of ATCNet Blocks                                               changing the length of the temporal sequence (Tc ) produced
+   In this section, we perform an ablation analysis to measure                  by the CV block as well as the number of windows n. The
+the effectiveness of each block in the ATCNet model. Table II                   sequence length is controlled by the size of the second pooling
+presents the impact of removing one or more blocks in the                       layer (P2 ) in the CV block, as defined in (1). Fig. 7 shows the
+ATCNet model on the performance of MI classification using                      accuracy of MI classification using three temporal sequences
+the BCI-2a dataset. Blocks were removed before training and                     of lengths 17, 20, and 28, which encode the original MI-EEG
+validation operations. The results showed that the AT block                     signal with a resolution of 64 samples (256 ms), 56 samples
+increased the overall accuracy by 1.54% and SW by 2.28%.                        (225 ms), and 40 samples (160 ms), respectively. Each sequence
+The addition of the TC block also increased accuracy by 1.04%                   is studied while increasing the number of windows from 1 to 16.
+compared to using the CV block only. The results showed                         ATCNet works best when the window length is less than RFS
+that each block adds its contribution regardless of the other                   (19). Using a longer window than RFS significantly reduces
+blocks except for the attention block. Attention block improves                 accuracy due to information loss, as shown in the 28-sample
+
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+2256                                                                  IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 19, NO. 2, FEBRUARY 2023
+
+
+
+                                                                                                               TABLE IV
+                                                                                      PERFORMANCE (ACCURACY (%) AND κ-SCORE) COMPARISON OF
+                                                                                     SUBJECT-SPECIFIC CLASSIFICATION USING BCI-2A DATASET FOR THE
+                                                                                          PROPOSED MODEL WITH OTHER REPRODUCED MODELS
+
+
+
+
+Fig. 8. Accuracy on BCI-a2 as a function of the number of attention
+heads using head sizes of 8 and 16. Reducing head size as well as
+the number of heads showed better performance due to the small size
+of the dataset and its light representation. The best performance was
+using two 8-size heads.
+
+                        TABLE III
+ATCNET MODEL PERFORMANCE USING DIFFERENT ATTENTION SCHEMES:
+        MSA WITH 8 AND 16 HEAD SIZE, SE, AND CBAM
+
+
+
+
+sequence (while TW = 20–28). In general, increasing the num-
+ber of windows improved classification accuracy as this helps
+to augment the data and helps the model learn the changing
+MI information from different time positions. However, this
+increase in accuracy reaches a point where the window contains
+a narrow signal that may not contain enough MI information
+to train the model. For example, by dividing the 20-sample
+sequence into 12 windows with a stride of one, each window
+will have six samples corresponding to 384 samples (∼1.5 s) in
+the original signal with a stride of 64. This justifies the decrease
+in accuracy for sequences of lengths 17 and 20 starting in six
+windows. The 20-sample sequence performed better than the
+other sequences in many windows and the best performance                         Fig. 9. Average confusion matrices of the proposed ATCNet and the
+                                                                                 reproduced EEGNet, EEG-TCNet, and TCNet_Fusion models. The re-
+was achieved using five windows (each window of length 16).                      sults showed that ATCNet improved MI decoding for all MI tasks com-
+This indicates that encoding the original MI-EEG signal at a                     pared to equivalent models.
+resolution of 56 samples (225 ms) provides a good representation
+compared to a lower (e.g., 160 ms) or higher (e.g., 256 ms)
+resolution.                                                                      light representation, i.e., sequence length = 16 and embedding
+                                                                                 size = 32, which requires few parameters to train.
+                                                                                    In Table III, we compare the performance of the proposed
+F. Comparing Different Attention Schemes
+                                                                                 model using three attention mechanisms: MSA [27], SE [28],
+   Fig. 8 compares the performance of the MSA block with a                       and CBAM [29]. The number of MSA heads was set to 2 and
+different number of heads using dimension sizes of 8 and 16, i.e.,               the head size was set to 8 and 16. The reduction ratio for both
+the size of each attention head for query/key/value vectors. The                 SE and CBAM was experimentally set to 8. The results showed
+results showed that using two heads each of size 8 gave the best                 that all attention mechanisms improved the performance of the
+results. This is because the MI-EEG dataset has a limited number                 ATCNet model while the best performance was achieved by
+of samples, which requires a light MSA layer to converge well.                   MSA, indicating that MSA is more suitable for a 2-D EEG
+In addition, the temporal data entered into the MSA layer has a                  representation.
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+ALTAHERI et al.: PHYSICS-INFORMED ATTENTION TEMPORAL CONVOLUTIONAL NETWORK                                                                                2257
+
+
+
+                             TABLE V                                           (subject-dependent) results, we evaluated the performance of the
+  SUBJECT-SPECIFIC PERFORMANCE ON THE BCI-2A DATASET USING THE
+   SAME ORIGINAL COMPETITION DIVISION (HOLD-OUT APPROACH: 50%
+                                                                               proposed model in subject-independent classification, which is
+ TRAINING TRIALS AND 50% TEST TRIALS). ACCURACY (%) AND κ-SCORE                a measure of the model’s generalization ability. The proposed
+                ARE THE AVERAGES FOR ALL SUBJECTS                              model achieved the best subject-independent performance on
+                                                                               the BCI-2a dataset, as shown in Table VI.
+
+                                                                                                           IV. CONCLUSION
+                                                                                  This article proposed a novel ATCNet for EEG-based motor
+                                                                               imagery classification. ATCNet consists of three main blocks:
+                                                                               the CV block, to encode the raw MI-EEG signal into a compact
+                                                                               temporal sequence, the multihead self-AT block, to highlight the
+                                                                               most effective information in the temporal sequence, and the TC
+                                                                               block, to extract high-level temporal features from the temporal
+                                                                               sequence. This article also implemented a convolutional-based
+                                                                               SW combined with CV block to improve the performance of
+                                                                               MI classification efficiently by parallelizing the process. The
+                                                                               ablation analysis showed that each block in the ATCNet model
+                          TABLE VI
+ SUBJECT-INDEPENDENT PERFORMANCE ON THE BCI-2A DATASET USING                   made a significant contribution to the performance of the ATC-
+   LOSO CROSS VALIDATION. ACCURACY (%) AND κ-SCORE ARE THE                     Net model. The AT block increased overall accuracy by 1.54%,
+                  AVERAGES FOR ALL SUBJECTS                                    the SW by 2.28%, and the TC by 1.04% compared to using
+                                                                               the CV block only. The proposed ATCNet model outperformed
+                                                                               recent techniques in MI-EEG classification using the BCI-2a
+                                                                               dataset with an accuracy of 85.38% and 70.97% for the subject-
+                                                                               dependent and subject-independent modes, respectively. These
+                                                                               high results came with a relatively small number of parameters
+                                                                               (115.2K), which makes ATCNet applicable to industrial devices
+                                                                               with limited resources. The proposed model demonstrated a
+                                                                               powerful ability to extract MI features from a raw EEG signal
+                                                                               without artifact removal and with minimal preprocessing using a
+                                                                               limited-size and challenging dataset. ATCNet showed an overall
+                                                                               improvement in EEG decoding for all MI classes and all subjects
+                                                                               in the BCI-2a dataset proving that ATCNet can learn to find
+G. Comparison to Recent Studies                                                generic EEG representations across classes and subjects.
+                                                                                  For future work, the proposed model can be further improved
+   Table IV summarizes the accuracy and κ-score of the pro-
+                                                                               by using attention mechanisms in several domains. Effective MI
+posed ATCNet model using the BCI-2a dataset and its com-
+                                                                               information occurs in the EEG data at specific time intervals,
+parison with the reproduced EEGNet [12], EEG-TCNet [22],
+                                                                               channel locations, and frequency bands; Thus, developing a DL
+and TCNet_Fusion [23], as these models have some similarities
+                                                                               model that automatically attends to the most important informa-
+with the proposed model. The results of the reproduced models
+                                                                               tion in these domains is a promising direction for improving the
+are based on the hyperparameters identified in the original
+                                                                               performance of MI-EEG classification. The proposed model can
+articles, while preprocessing, training, and evaluation followed
+                                                                               also be refined using preprocessing methods to remove artifacts
+the same procedure defined in this article. Table IV shows
+                                                                               and deep generative models to increase the size of the dataset.
+that ATCNet performed better than EEGNet, EEG-TCNet, and
+TCNet_Fusion for all subjects with an average accuracy of
+                                                                                                             REFERENCES
+85.38% and a κ-score of 0.81. This represents a 4.71% increase
+in accuracy over these models. In addition, the proposed model                  [1] I. Ahmed, G. Jeon, and F. Piccialli, “From artificial intelligence to ex-
+                                                                                    plainable artificial intelligence in industry 4.0: A survey on what, how,
+achieved the best standard deviation among subjects with a value                    and where,” IEEE Trans. Ind. Inform., vol. 18, no. 8, pp. 5031–5042,
+of 9.08%, indicating that the accuracy is more robust over all                      Aug. 2022.
+subjects. The average confusion matrices of ATCNet and the                      [2] H. Altaheri et al., “Deep learning techniques for classification of elec-
+                                                                                    troencephalogram (EEG) motor imagery (MI) signals: A review,” Neural
+reproduced models are shown in Fig. 9. ATCNet demonstrated                          Comput. Appl., pp. 1–42, 2021.
+an improvement in MI decoding for all MI classes compared to                    [3] K. K. Ang, Z. Y. Chin, C. Wang, C. Guan, and H. Zhang, “Filter bank
+the other models.                                                                   common spatial pattern algorithm on BCI competition IV datasets 2a and
+                                                                                    2b,” Front. Neurosci., vol. 6, 2012, Art. no. 56013.
+   Table V presents the reported overall accuracy and κ-score                   [4] M. S. Hossain, M. Al-Hammadi, and G. Muhammad, “Automatic fruit
+of recent studies in the subject-specific MI-EEG classifica-                        classification using deep learning for industrial applications,” IEEE Trans.
+tion using the BCI-2a dataset. The proposed ATCNet model                            Ind. Inform., vol. 15, no. 2, pp. 1027–1034, Feb. 2019.
+                                                                                [5] H. Altaheri, M. Alsulaiman, and G. Muhammad, “Date fruit classification
+performs better than the recent studies using raw EEG data                          for robotic harvesting in a natural environment using deep learning,” IEEE
+and without pre-processing. In addition to the subject-specific                     Access, vol. 7, pp. 117115–117133, 2019.
+
+
+      Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+2258                                                                   IEEE TRANSACTIONS ON INDUSTRIAL INFORMATICS, VOL. 19, NO. 2, FEBRUARY 2023
+
+
+
+ [6] I. Ahmed, S. Din, G. Jeon, and F. Piccialli, “Exploring deep learning        [29] S. Woo, J. Park, J.-Y. Lee, and I. S. Kweon, “Cbam: Convolutional block
+     models for overhead view multiple object detection,” IEEE Internet Things         attention module,” in Proc. Eur. Conf. Comput. Vis., 2018, pp. 3–19.
+     J., vol. 7, no. 7, pp. 5737–5744, Jul. 2020.                                 [30] C. Brunner, R. Leeb, G. Müller-Putz, A. Schlögl, and G. Pfurtscheller,
+ [7] M. Qamhan, H. Altaheri, A. H. Meftah, G. Muhammad, and Y. A. Alotaibi,            “BCI competition 2008–Graz data set A,” Inst. Knowl. Discov. Graz Univ.
+     “Digital audio forensics: Microphone and environment classification using         Technol., vol. 16, pp. 1–6, 2008.
+     deep learning,” IEEE Access, vol. 9, pp. 62719–62733, 2021.                  [31] S. Ioffe and C. Szegedy, “Batch normalization: Accelerating deep network
+ [8] D. Zhang, K. Chen, D. Jian, and L. Yao, “Motor imagery classification via         training by reducing internal covariate shift,” in Proc. Int. Conf. Mach.
+     temporal attention cues of graph embedded EEG signals,” IEEE J. Biomed.           Learn., 2015, pp. 448–456.
+     Health Inform., vol. 24, no. 9, pp. 2570–2579, Sep. 2020.                    [32] R. T. Schirrmeister et al., “Deep learning with convolutional neural net-
+ [9] G. A. Altuwaijri, G. Muhammad, H. Altaheri, and M. Alsulaiman, “A                 works for EEG decoding and visualization,” Hum. Brain Mapping, vol. 38,
+     multi-branch convolutional neural network with squeeze-and-excitation             no. 11, pp. 5391–5420, 2017.
+     attention blocks for EEG-based motor imagery signals classification,”        [33] J. L. Ba, J. R. Kiros, and G. E. Hinton, “Layer normalization,” 2016,
+     Diagnostics, vol. 12, no. 4, 2022, Art. no. 995.                                  arXiv1607.06450.
+[10] S. U. Amin, H. Altaheri, G. Muhammad, W. Abdul, and M. Alsu-
+     laiman, “Attention-inception and long short-term memory-based elec-
+     troencephalography classification for motor imagery tasks in rehabilita-
+     tion,” IEEE Trans. Ind. Inform., vol. 18, no. 8, pp. 5412–5421, Aug. 2022.
+[11] S. U. Amin, H. Altaheri, G. Muhammad, M. Alsulaiman, and W. Abdul,
+     “Attention based inception model for robust EEG motor imagery classifi-
+                                                                                                           Hamdi Altaheri (Member, IEEE) received the
+     cation,” in Proc. IEEE Int. Instrum. Meas. Technol. Conf., 2021, pp. 1–6.
+                                                                                                           master’s degree in computer engineering in
+[12] V. J. Lawhern, A. J. Solon, N. R. Waytowich, S. M. Gordon, C. P. Hung,
+                                                                                                           2019 from King Saud University, Riyadh, Saudi
+     and B. J. Lance, “EEGNet: A compact convolutional neural network for
+                                                                                                           Arabia, where he is currently working toward
+     EEG-based brain–computer interfaces,” J. Neural Eng., vol. 15, no. 5,
+                                                                                                           the Ph.D. degree in decoding biomedical signals
+     2018, Art. no. 56013.
+[13] D. Li, J. Xu, J. Wang, X. Fang, and Y. Ji, “A multi-scale fusion convolu-                             with the Department of Computer Engineering,
+                                                                                                           College of Computer and Information Sciences.
+     tional neural network based on attention mechanism for the visualization
+                                                                                                              His research interests include computer vi-
+     analysis of EEG signals decoding,” IEEE Trans. Neural Syst. Rehabil.
+                                                                                                           sion, bioengineering, machine learning, and
+     Eng., vol. 28, no. 12, pp. 2615–2626, Dec. 2020.
+[14] S. Kumar, R. Sharma, and A. Sharma, “OPTICAL+: A frequency-based                                      deep learning.
+     deep learning scheme for recognizing brain wave signals,” Peer J. Comput.
+     Sci., vol. 7, 2021, Art. no. e375.
+[15] T. Luo and F. Chao, “Exploring spatial-frequency-sequential relationships
+     for motor imagery classification with recurrent neural network,” BMC
+     Bioinf., vol. 19, no. 1, 2018, Art. no. 344.
+[16] J. Xu, H. Zheng, J. Wang, D. Li, and X. Fang, “Recognition of EEG
+                                                                                                         Ghulam Muhammad (Senior Member, IEEE)
+     signal motor imagery intention based on deep multi-view feature learning,”
+                                                                                                         received the B.S. degree in computer sci-
+     Sensors, vol. 20, no. 12, 2020, Art. no. 3496.
+                                                                                                         ence and engineering from Bangladesh Uni-
+[17] A. Hassanpour, M. Moradikia, H. Adeli, S. R. Khayami, and P. Sham-
+                                                                                                         versity of Engineering and Technology, Dhaka,
+     sinejadbabaki, “A novel end-to-end deep learning scheme for classifying
+                                                                                                         Bangladesh, in 1997, and the M.S. degree
+     multi-class motor imagery electroencephalography signals,” Expert Syst.,
+                                                                                                         in knowledge-based information engineering in
+     vol. 36, no. 6, 2019, Art. no. e12494.                                                              2003, and the Ph.D. degree in electrical and
+[18] S. U. Amin, M. Alsulaiman, G. Muhammad, M. A. Mekhtiche, and M. S.
+                                                                                                         computer engineering from Toyohashi Univer-
+     Hossain, “Deep learning for EEG motor imagery classification based on
+                                                                                                         sity and Technology, Toyohashi, Japan, in 2006.
+     multi-layer CNNs feature fusion,” Future Gener. Comput. Syst., vol. 101,
+                                                                                                            He is a Professor with the Department of
+     pp. 542–554, 2019.                                                                                  Computer Engineering, College of Computer
+[19] M.-A. Li, J.-F. Han, and L.-J. Duan, “A novel MI-EEG imaging with the
+                                                                                  and Information Sciences, King Saud University, Riyadh, Saudi Arabia.
+     location information of electrodes,” IEEE Access, vol. 8, pp. 3197–3211,
+                                                                                  He holds two U.S. patents. He has authored and coauthored more than
+     2020.
+                                                                                  300 publications including IEEE/ACM/Springer/Elsevier journals, and
+[20] T. Liu and D. Yang, “A densely connected multi-branch 3D convolutional       flagship conference papers. His research interests include AI, machine
+     neural network for motor imagery EEG decoding,” Brain Sci., vol. 11,
+                                                                                  learning, image and speech processing, and smart healthcare.
+     no. 2, 2021, Art. no. 197.
+                                                                                     Prof. Muhammad was a recipient of the Japan Society for Promotion
+[21] S. Bai, J. Z. Kolter, and V. Koltun, “An empirical evaluation of generic
+                                                                                  and Science fellowship from the Ministry of Education, Culture, Sports,
+     convolutional and recurrent networks for sequence modeling,” 2018,           Science and Technology, Japan.
+     arXiv1803.01271.
+[22] T. M. Ingolfsson, M. Hersche, X. Wang, N. Kobayashi, L. Cavigelli,
+     and L. Benini, “EEG-TCNet: An accurate temporal convolutional net-
+     work for embedded motor-imagery brain-machine interfaces,” 2020,
+     arXiv2006.00622.
+[23] Y. K. Musallam et al., “Electroencephalography-based motor imagery clas-
+     sification using temporal convolutional network fusion,” Biomed. Signal
+     Process. Control, vol. 69, 2021, Art. no. 102826.                                                   Mansour Alsulaiman (Senior Member, IEEE)
+[24] S. Cuomo, V. S. Di Cola, F. Giampaolo, G. Rozza, M. Raissi, and F.                                  received the Ph.D. degree in computer engi-
+     Piccialli, “Scientific machine learning through physics-informed neural                             neering from Iowa State University, Ames, IA,
+     networks: Where we are and what’s next,” J. Sci. Comput., vol. 92, 2022,                            USA, in 1987.
+     Art. no. 88.                                                                                           He is currently a Professor with the De-
+[25] D. Bahdanau, K. Cho, and Y. Bengio, “Neural machine translation by                                  partment of Computer Engineering, College of
+     jointly learning to align and translate,” 2014, arXiv1409.0473.                                     Computer and Information Sciences, King Saud
+[26] M.-T. Luong, H. Pham, and C. D. Manning, “Effective approaches to                                   University, Riyadh, Saudi Arabia. He was the
+     attention-based neural machine translation,” in Proc. Conf. Empirical                               Editor-in-Chief with the King Saud University
+     Methods Natural Lang. Process. (EMNLP), Lisbon, Portugal, Sep. 2015,                                Journal Computer and Information Systems. He
+     pp. 1412–1421.                                                                                      is the Director of Center of Smart Robotics Re-
+[27] A. Vaswani et al., “Attention is all you need,” Adv. Neural Inf. Process.    search, King Saud University, Riyadh, Saudi Arabia. His research in-
+     Syst., vol. 30, pp. 5998–6008, 2017.                                         terests include automatic speech/speaker recognition, automatic voice
+[28] J. Hu, L. Shen, and G. Sun, “Squeeze-and-excitation networks,” in Proc.      pathology assessment systems, computer-aided pronunciation training
+     IEEE Conf. Comput. Vis. Pattern Recognit., 2018, pp. 7132–7141.              system, and robotics.
+
+
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 05:38:44 UTC from IEEE Xplore. Restrictions apply.
+

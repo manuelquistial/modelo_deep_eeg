@@ -1,0 +1,617 @@
+                        IEEE SENSORS JOURNAL, VOL. 25, NO. 3, 1 FEBRUARY 2025                                                                             4777
+
+
+
+
+A Novel CNN With Sliding Window Technique for
+Enhanced Classification of MI-EEG Sensor Data
+                 Kamal Singh , Nitin Singha , Gaurav Jaswal, Member, IEEE, and Swati Bhalaik
+
+
+
+   Abstract—The major challenge in fully using the motor
+imagery (MI)-based brain–computer interface (MI-BCI) capa-
+bilities is accurately classifying the MI electroencephalogra-
+phy (MI-EEG) signals. Despite numerous advancements in
+signal processing and deep learning (DL) techniques, there
+is significant scope for improvement in the accuracy cur-
+rently available in the state-of-the-art. This can be achieved
+by leveraging spatial and temporal features of MI-EEG sig-
+nal. We propose SWCNet, a convolutional neural network
+(CNN)-based model, and integrate it with the sliding window
+technique to increase the accuracy. In this work, a new CNN
+architecture has been proposed to extract more features
+from data, whereas the sliding window technique enhances
+temporal features by augmenting the input sensor data along
+the temporal dimension. We have thoroughly evaluated the
+performance of SWCNet using subject-dependent and subject-independent approaches for four different datasets. Our
+analysis includes general accuracy metrics, an ablation study, a parametric sensitivity study, and a detailed classwise
+performance evaluation for the tongue, foot, left-hand, and right-hand movements. The proposed model achieves
+accuracies of 97.42%, 94.46%, 92.27%, and 90.82% for the BCI Competition IV-2a (BCIC-IV-2a), BCI Competition IV-2b
+(BCIC-IV-2b), High Gamma, and OpenBMI datasets, respectively. SWCNet outperforms the state-of-the-art methods with
+higher accuracy for all the datasets, demonstrating its superior generalizability. SWCNet holds promise in enhancing the
+effectiveness of BCI applications, especially in medical rehabilitation.
+  Index Terms— Brain–computer interface (BCI), convolutional neural network (CNN), deep learning (DL), electroen-
+cephalography (EEG), machine learning (ML), motor imagery (MI), sensor.
+
+
+
+                      I. I NTRODUCTION                                              The notable application of the BCI system is motor imagery
+     RAIN–COMPUTER interface (BCI) provides a commu-                             (MI)-based BCI (MI-BCI) system [4]. MI-BCI systems are
+B    nication path between a human brain and an external
+device, such as a computer. It senses brain activity as sig-
+                                                                                 crucial in enhancing the quality of life for individuals suf-
+                                                                                 fering from motor disabilities and empowering them to live
+nals and decodes them to enable communication. Numerous                          independently rather than relying on others for daily chores.
+sensing techniques for acquiring brain activity have been                        An MI-BCI system establishes a communication pathway
+proposed, with electroencephalography (EEG) emerging as                          for controlling artificial limbs. An individual imagines a
+a widely adopted method [1]. EEG is favored due to its                           motor action task, and this activity is recorded as MI-EEG
+high temporal resolution, cost-effectiveness, portability, and                   signals using EEG sensors. Subsequently, these signals are
+user-friendly nature [2]. In EEG, brain activities are recorded                  classified according to the associated body part to activate
+through sensor electrodes placed on the scalp, generating EEG                    the corresponding artificial limb. Fig. 1 describes a typical
+signals [3].                                                                     MI-BCI system. MI-BCI signals find application in wide areas
+                                                                                 of medical and nonmedical fields, such as neurological stroke
+   Received 12 November 2024; accepted 4 December 2024. Date of                  rehabilitation, restoring lost or impaired limb function, robotic
+publication 17 December 2024; date of current version 31 January 2025.           wheelchair control, exoskeleton control, vehicle/drone control,
+The associate editor coordinating the review of this article and approving
+it for publication was Prof. Shakeb A. Khan. (Corresponding author:              smart home, speller, and cursor control [5]. However, the
+Nitin Singha.)                                                                   practical use of these signals beyond the laboratory setting or
+   Kamal Singh and Nitin Singha are with ECE Department, National                with moving users is limited due to very low accuracy in rec-
+Institute of Technology (NIT) at Delhi, New Delhi 110036, India (e-mail:
+nitinsingha@nitdelhi.ac.in).                                                     ognizing brain activity from EEG signals. The primary cause
+   Gaurav Jaswal is with Indian Institute of Technology at Mandi, Mandi,         of this low accuracy is the inherently low signal-to-noise ratio
+Himachal Pradesh 175005, India.                                                  (SNR) in the received EEG signals. Various sources of noise,
+   Swati Bhalaik is with Jindal Global Business School, Sonipat, Haryana
+131001, India.                                                                   such as artifacts (e.g., eye blinking and muscle movements),
+   Digital Object Identifier 10.1109/JSEN.2024.3515252                           electronic devices (such as mobile phones, wireless routers,
+
+
+             1558-1748 © 2024 IEEE. All rights reserved, including rights for text and data mining, and training of artificial intelligence
+                    and similar technologies. Personal use is permitted, but republication/redistribution requires IEEE permission.
+       Authorized licensed use limited See  https://www.ieee.org/publications/rights/index.html
+                                       to: Universidad                                            for14:27:16
+                                                       de Antioquia. Downloaded on August 27,2025 at  more information.
+                                                                                                              UTC from IEEE Xplore. Restrictions apply.
+4778                                                                                            IEEE SENSORS JOURNAL, VOL. 25, NO. 3, 1 FEBRUARY 2025
+
+
+
+
+                                                                                    4) Most existing models rely on training with a single
+                                                                                        dataset, further limiting their ability to generalize to new
+                                                                                        data from different sources.
+                                                                                    Furthermore, EEG signals pose constraints such as low
+                                                                                 SNR, high dimensionality, and signal variation with changes
+                                                                                 in subjects. These limitations decrease a model’s ability to
+                                                                                 classify MI-EEG signals accurately. Thus, there is a need to
+                                                                                 develop a CNN model with enhanced generalization capability.
+                                                                                    The contribution and novelty of this work are as follows.
+                                                                                    1) We have developed SWCNet, a CNN-based DL archi-
+                                                                                        tecture for MI-EEG signal classification.
+                                                                                    2) SWCNet is integrated with the sliding window, a data
+                                                                                        augmentation (DA) technique. This enhances the
+                                                                                        model’s capability to maintain consistent performance
+                                                                                        with new data.
+                                                                                    3) SWCNet was trained and tested on four EEG datasets:
+                                                                                        BCI Competition IV-2a (BCIC-IV-2a) [13], BCI Com-
+                                                                                        petition IV-2b (BCIC-IV-2b) [14], High Gamma Dataset
+                                                                                        (HGD) [15], and OpenBMI [16], for subject-dependent
+                                                                                        and subject-independent scenarios. This analysis is cru-
+                                                                                        cial to ensure a robust classification model for enhanced
+   Fig. 1. MI-BCI system that uses DL to classify MI-EEG signals.                       generalization capability.
+                                                                                    4) We also conducted ablation studies to analyze the con-
+                                                                                        tribution of different model components and parametric
+computers, and other wireless devices), and environmental                               sensitivity studies to assess the model’s robustness to
+noises (e.g., sound and light), tend to corrupt these sensed                            parameter variations.
+EEG signals [6]. Combining this noise with factors such                             5) Finally, SWCNet was compared with state-of-the-art
+as subject dependencies, the need for calibration, and high                             models, [9], [15]. Classification accuracy and F1-score
+dimensionality increases the complexity of classifying the                              are compared across diverse operational scenarios to
+signal. Hence, accurately recognizing human intentions from                             ensure a comprehensive assessment. Our approach
+MI-EEG signals remains a major challenge in all MI-BCI                                  emerges as a better and more robust alternative to the
+systems.                                                                                existing ones.
+   Artificial intelligence (AI) is widely used to perform                           Hence, this work offers valuable insights into enhancing
+complex classification tasks such as MI-EEG signal clas-                         classification accuracy and making the overall system generic.
+sification [7]. Initially, machine learning (ML) techniques                      These findings may prove crucial for designing high-quality
+such as common spatial pattern (CSP) and support vector                          MI-BCI applications in real-life scenarios.
+machines (SVMs) were used to classify them [8]. The advent
+of deep learning (DL) has led to the widespread use of
+                                                                                                      II. R ELATED W ORK
+convolutional neural network (CNN) models for classifying
+MI-EEG signals [9]. However, these CNN models suffer from                          In the past, two strategies have been primarily used to
+the following limitations.                                                       improve the classification accuracy of MI-BCI systems.
+                                                                                   1) Use suitable signal processing techniques to efficiently
+  1) EEGNET [9], a pioneering CNN model for EEG signal.                                extract features from the signal.
+     This model is trained on a diverse range of EEG signals,                      2) Develop DL or ML models to classify signals with
+     so its classification accuracy for a specific subset, i.e.,                       higher accuracy based on the extracted features.
+     MI-EEG signals, is limited.
+                                                                                 The work done in the past has been outlined in Table I. The
+  2) Several models have been proposed that are specifically
+                                                                                 key findings from the literature review are as follows.
+     designed for classifying MI-EEG signals [10], [11], [12].
+     These models excel at classifying data from a specific                        1) The main signal processing techniques that have been
+     subject (subject-dependent scenarios) but are not trained                         used are summarized below.
+     for data from different subjects (subject-independent                               a) Filtering methods: The filtering method attempts to
+     scenarios).                                                                            extract the MI-EEG information from EEG signal.
+  3) There are models that are also trained for subject-                                    It also removes noise and artifacts from the signal.
+     independent scenarios, but they offer limited classifi-                                Generally, bandpass filters are used [21].
+     cation accuracy (e.g., ATCNet = 70.97% [6]). This                                   b) Feature extraction: CSPs [17], filter-bank CSPs
+     indicates a lack of generalization capability, i.e., clas-                             (FBCSPs) [15], and spatial filtering [12] are used
+     sification accuracy of these models deteriorates as they                               to extract spatial features efficiently. Hilbert trans-
+     are presented with signals from new subjects.                                          form [10] and short-time Fourier transform (STFT)
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+SINGH et al.: NOVEL CNN WITH SLIDING WINDOW TECHNIQUE FOR ENHANCED CLASSIFICATION                                                                        4779
+
+
+
+
+                                                                       TABLE I
+                                      OVERVIEW OF S TATE - OF - THE -A RT M ODELS IN MI-EEG C LASSIFICATION
+
+
+
+
+             are used for effectively extracting the temporal                                                    TABLE II
+             features.                                                                                  D ETAILS OF DATASET U SED
+
+   2) The main ML/DL techniques are as follows.
+         a) Linear models: Linear discriminant analysis (LDA)
+             and linear regression have been implemented in
+             some earlier studies [12], [17].
+         b) CNN: CNNs are widely used for their ability to
+             capture spatial hierarchies in EEG sensor data [10],
+             [21].                                                              OpenBMI [16]. Table II summarizes the datasets used in this
+         c) Recurrent neural networks (RNNs): LSTM net-                         study.
+             works are applied for analyzing temporal features                     1) BCI Competition IV-2a: This dataset consists of EEG sen-
+             of EEG sensor data [12].                                           sor data from nine subjects. The dataset comprises four classes,
+         d) Hybrid models: Some studies [18], [19], [20]                        viz., left-hand, right-hand, both feet, and tongue movements.
+             integrate CNNs and LSTM networks to use both                          2) BCI Competition IV-2b: This dataset comprises EEG sen-
+             spatial and temporal information.                                  sor data from nine subjects across five sessions. The dataset
+The key findings from the literature review are as follows.                     comprises two classes, viz., left-hand and right-hand MI tasks.
+                                                                                   3) High Gamma Dataset: This dataset was obtained from
+   1) Transfer Learning Methods: Some models have applied
+       transfer learning frameworks to pretrained neural net-                   14 subjects across two sessions with roughly 1000 trials per
+       works for classifying the MI-EEG signals [18].                           subject. The dataset comprises four classes, viz., left-hand,
+   2) Binary Classification: Some models are limited to binary                  right-hand, both feet, and rest (no movement).
+                                                                                   4) OpenBMI: This dataset was recorded from 54 subjects
+       classification tasks only [17].
+   3) Subject-Dependence: Majority of models are trained on                     across two sessions. The dataset comprises two classes, viz.,
+       specific subjects, restricting their generalizability [10],              right-hand and left-hand MI tasks.
+       [11], [12], [12], [15], [18], particularly to subject-
+       independent scenario.                                                    B. Preprocessing
+   4) Limited Subject Independence: Some models are trained                        The BCIC IV-2a and BCIC IV-2b datasets exclusively
+       across subjects, but they exhibit poor performance [6],                  contain data from the motor cortex, while the HGD and
+       [21].                                                                    OpenBMI datasets include data from both the motor cortex and
+                                                                                other parts of the brain. Therefore, the BCIC IV-2a and BCIC
+Our literature review shows significant scope for further
+                                                                                IV-2b data were used without preprocessing. For the HGD
+enhancements to the existing model to increase its efficiency
+                                                                                dataset, we selected only those sensor electrodes that cover
+and generalizability. One promising approach to enhance effi-
+                                                                                the motor cortex, as suggested by [15]. Thus, we chose all
+ciency involves DA techniques such as sliding window. While
+                                                                                44 central electrodes except C z, which serves as the recording
+traditional sliding window approaches have primarily focused
+                                                                                reference electrode. In the OpenBMI dataset, we selected
+on postprocessing EEG signals [23], this work explores a novel
+                                                                                20 electrodes associated with the motor region, as suggested
+application. Inspired by the above work, we propose SWCNet,
+                                                                                by [16]. To ensure consistency across datasets, the HGD and
+a CNN model that uses a DA technique to classify MI-EEG
+                                                                                OpenBMI data were resampled to Fs = 250 Hz to match the
+data.
+                                                                                sampling rate in BCIC IV-2a and BCIC IV-2b.
+
+                   III. M ETHODOLOGY                                            C. Proposed Architecture
+A. Dataset                                                                         We have proposed SWCNet, a CNN-based DL architecture
+  To improve the applicability and generalization of our                        integrated with the sliding window technique for classifying
+proposed model, we trained and tested it on four EEG                            motor imagery EEG signals as depicted in Fig. 2. We now
+datasets: BCIC-IV-2a [13], BCIC-IV-2b [14], HGD [15], and                       describe the model in further detail.
+
+      Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+4780                                                                                            IEEE SENSORS JOURNAL, VOL. 25, NO. 3, 1 FEBRUARY 2025
+
+
+
+
+                                                             Fig. 2. Architecture of SWCNet.
+
+
+
+                                                                                                           TABLE III
+                                                                                 PARAMETERS OF CNN MODEL IN SWCN ET, W HERE Ch = N UMBER OF
+                                                                                  S ELECTED EEG C HANNELS , Ts = N UMBER OF T IME P OINTS , Fs =
+                                                                                         S AMPLING F REQUENCY, K = N UMBER OF C LASSES
+
+
+
+
+Fig. 3. Graphical representation of sliding window implementation on
+single-trial EEG data.
+
+
+
+   1) Sliding Window Technique: The classification accuracy
+was improved by applying a sliding window, a DA technique
+to the EEG sensor data. We extracted 4.5-s segments from each
+trial across all the datasets, capturing data from 0.25 s before
+the cue to 0.25 s after each MI task. To achieve this, we divided
+the 4.5-s segment from each trial into seven overlapping 3 s
+                                                                                    a) Convolution block I: This block incorporates two convo-
+windows, with a sliding interval of 0.25 s (refer Fig. 3). This
+                                                                                       lution layers for extracting spatial and temporal features.
+approach effectively increased the dataset size by a factor of 7.
+                                                                                       The block begins with a 2-D convolutional layer to
+   After the sliding window technique, the EEG data of each
+                                                                                       perform spatial convolution using 16 filters of size
+trial are converted in the matrix with dimensions C h × Ts ,
+                                                                                       (C h , 1), where C h is the number of EEG channels. After
+where C h represents the total number of selected EEG chan-
+                                                                                       this layer, another 2-D convolution layer is present to
+nels, and Ts denotes the time points (7501 ).
+                                                                                       perform temporal convolution using 32 filters of size
+   2) Input Representation: The input to the proposed model
+                                                                                       (1, 64). As there is no activation function between these
+is a trial X k ∈ RCh ×Ts . The primary objective of the model
+                                                                                       two layers, they could potentially be merged into a single
+is to classify each motor imagery trial X k into its respective
+                                                                                       layer. However, keeping these layers distinct regularizes
+class yk , based on a set of labeled data D = {(X k , yk )}k=1N ,
+                                                                                       the overall convolution process by segregating the linear
+where N denotes the total number of trials. yk ∈{1, . . . , K }
+                                                                                       transformation into a combination of spatial and tempo-
+is the corresponding class label for trial X k . For the labeled
+                                                                                       ral convolutions.
+dataset D, K is the total number of classes.
+                                                                                       After each 2-D convolution layer, a batch normalization
+   The proposed CNN-based model processes the EEG data
+                                                                                       layer is also used to ensure stable learning during
+through various layers and extracts spatial and temporal depen-
+                                                                                       training by normalizing each mini-batch. It stabilizes
+dencies from EEG data. It then classifies EEG data into distinct
+                                                                                       internal network distributions within each mini-batch by
+motor imagery tasks.
+                                                                                       reducing internal covariate shift and promoting faster,
+   3) Proposed CNN Model: This CNN model aims to achieve
+                                                                                       stable training convergence [24]. Furthermore, ReLU
+robust and reliable classification performance for MI-EEG
+                                                                                       activation function is used to capture complex, nonlinear
+tasks by properly training and fine-tuning the model’s hyper-
+                                                                                       relationships in EEG signals. Afterward, we use an
+parameters. The proposed CNN-based DL model consists of
+                                                                                       average pooling layer of size (1, 2) for downsampling.
+several key components (refer Fig. 2 and Table III), viz., two
+                                                                                       This layer effectively reduces the sampling rate by a
+convolution blocks, a flattened layer, and a classification block.
+                                                                                       factor of 2.
+   1 Sampling frequency F is 250 Hz, and the length of the sliding window
+                            s
+                                                                                    b) Convolution block II: Unlike convolution block I, which
+is 3 s, resulting in 750 time points.                                                  uses both the spatial and temporal layers, this block
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+SINGH et al.: NOVEL CNN WITH SLIDING WINDOW TECHNIQUE FOR ENHANCED CLASSIFICATION                                                                        4781
+
+
+
+
+                                                          TABLE IV
+         S UBJECT-D EPENDENT AVERAGE C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE OF SWCN ET ON D IFFERENT DATASETS
+
+
+
+
+     exclusively uses a pointwise convolution across the                        consistent accuracy. Furthermore, we conduct a detailed
+     temporal dimension. This choice becomes necessary                          classification accuracy analysis by focusing on the model’s
+     because our EEG signal contains many temporal data                         performance across individual classes.
+     points but fewer spatial data points. This pointwise
+                                                                                   1) Subject-Dependent Results: To further enhance the gen-
+     convolutional layer using 16 filters is applied to capture
+     additional temporal relationships. Like block I, this                      eralizability of SWCNet, we have analyzed model under two
+     also includes a batch normalization layer and a ReLU                       experiment setups. Each setup uses different dataset permuta-
+     activation layer. Furthermore, two average pooling layers                  tions for training and testing. These setups are as follows:
+     with a filter size of (1, 4) and (1, 8) are integrated                        Experiment setup I: We combined the data from all sessions
+     to downsample the signal. Finally, the dropout method                      of each subject and then partitioned it into training, testing,
+     mitigates overfitting in the model by randomly deacti-                     and validation subsets with a ratio of 50:30:20 [20].
+     vating neurons in the network during training, with a                         Experiment setup II: We used a hold-out session tenfold
+     probability determined by the dropout rate [25]. In our                    cross-validation analysis, where one session is used for train-
+     model, we use a dropout rate of 0.5 for all analyses                       ing and the other for testing. The training data were partitioned
+     conducted in this study.                                                   into ten equally sized folds, preserving the original class
+  c) Flattened layer: Convolution blocks I and II are con-                      distribution within each fold. For each iteration, ninefolds were
+     nected to the classification layer via a flattened layer.                  used to train the model, while the remaining fold served as a
+     A flattened layer transforms the data received from                        validation set. This process was repeated ten times, ensuring
+     convolution blocks into the format that can be processed                   that every fold was used as a validation set exactly once. For
+     by the classification block.                                               the BCIC IV-2a, BCIC IV-2b, HGD, and OpenBMI datasets,
+  d) Classification block: The block begins with a fully                        the training data were taken from the training sessions in the
+     connected layer, which takes the features extracted from                   dataset, and the testing data were taken from the evaluation
+     the previous blocks and generates raw scores for the                       sessions.
+     K MI classes. The output of this layer is then fed into                       In each individual experiment setup for subject-dependent
+     a softmax layer to generate the probability distribution                   approach, each subject’s accuracy and F1-scores were deter-
+     for the MI classes. Finally, a classification layer is used                mined separately. Then, these parameters are averaged out for
+     to compute the loss and accuracy of the model during                       different subjects to calculate the final classification accuracy
+     training and evaluation.                                                   and F1-score, which are referred to as average classification
+                                                                                accuracy and average F1-score. The results pertaining to these
+                                                                                setups are as follows.
+               IV. R ESULTS AND D ISCUSSION
+                                                                                   Table IV summarizes the average classification accuracy
+   In this section, we analyze the performance of SWCNet                        and F1-score of SWCNet for both experimental setups I and II
+using accuracy and F1-score metrics. We have also replicated                    across all the datasets. Experiment setup I demonstrates supe-
+the EEGNet [9], ShallowConvNet [15], and DeepConvNet [15]                       rior performance, achieving the highest accuracy (97.42%)
+architectures and conducted a comparative analysis against the                  and F1-score (0.9742) on the BCIC IV-2a dataset. In con-
+proposed model.                                                                 trast, setup II exhibits a maximum accuracy of (82.85%) and
+   Simulation Setup: To establish the generalizability                          F1-score of 0.8269, obtained with the BCIC IV-2b dataset.
+of SWCNet, we analyze the above parameters for                                     These findings suggest that splitting data from all sessions
+subject-dependent and subject-independent approaches.                           for training and testing (experiment setup I) leads to better
+SWCNet is trained on a batch size of 32 using an Adam                           model prediction compared with the hold-out session k-fold
+optimizer with an initial learning rate of 0.001. This algorithm                cross-validation analysis approach (experiment setup II).
+dynamically adjusts the learning rate during training for faster                   To comprehensively analyze the model’s performance,
+convergence. To prevent overfitting, we monitor validation                      we also evaluated classwise accuracy across various datasets
+loss after each training epoch. Training stops if validation loss               using confusion matrices. As experiment setup I yielded the
+fails to decrease for ten consecutive epochs or a maximum                       best results for SWCNet, we present its confusion matrix for
+of 200 epochs is reached. All these hyperparameters were                        further examination. The classwise average accuracy achieved
+determined using various simulations to achieve optimal                         by the subject-dependent approach of SWCNet on the BCIC
+performance for a diverse range of subjects.                                    IV-2a dataset (see Fig. 4) surpassed that of all other datasets,
+                                                                                viz., HGD (Fig. 5), BCIC IV-2b (Fig. 6), and OpenBMI
+A. Performance Analysis of SWCNet                                               (Fig. 7). Furthermore, among different classes, the tongue
+  We analyze the performance of SWCNet across four                              class has the highest average accuracy of 97.9% on the BCIC
+datasets to determine which dataset yields higher and more                      IV-2a dataset. All the above points indicate that SWCNet
+      Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+4782                                                                                            IEEE SENSORS JOURNAL, VOL. 25, NO. 3, 1 FEBRUARY 2025
+
+
+
+
+                                                                                                             TABLE V
+                                                                                   S UBJECT-I NDEPENDENT OVERALL AND AVERAGE C LASSIFICATION
+                                                                                           ACCURACY (ACC ) AND F1-S CORE OF SWCN ET
+                                                                                                     ON D IFFERENT DATASETS
+
+
+
+
+Fig. 4. Average confusion matrix of SWCNet on the BCIC IV-2a dataset.
+
+
+
+
+                                                                                 Fig. 8. Overall confusion matrix of SWCNet on the BCIC IV-2a dataset.
+
+
+  Fig. 5. Average confusion matrix of SWCNet on the HGD dataset.
+
+
+
+
+                                                                                 Fig. 9. Overall confusion matrix of SWCNet on the BCIC IV-2b dataset.
+
+
+Fig. 6. Average confusion matrix of SWCNet on the BCIC IV-2b dataset.
+                                                                                 by reducing the calibration time needed for new subjects [1].
+                                                                                 To enhance model evaluation, a fivefold cross-validation was
+                                                                                 applied to the training data. The entire data were split into
+                                                                                 five equal folds, with four used for training and one for
+                                                                                 validation in each iteration. This process was repeated five
+                                                                                 times, ensuring each fold served as the validation set once
+                                                                                    In experiment setup I for the subject-independent approach,
+                                                                                 data from all subjects and sessions are combined, and the
+                                                                                 classification accuracy and F1-score are calculated, referred
+                                                                                 to as the overall classification accuracy and overall F1-score.
+Fig. 7. Average confusion matrix of SWCNet on the OpenBMI dataset.               In experiment setup II, the accuracy and F1-scores for each
+                                                                                 subject are calculated separately. These values are then aver-
+                                                                                 aged across all subjects to determine the final classification
+performs most consistently with the BCIC IV-2a dataset for                       accuracy and F1-score, referred to as the average classification
+subject-dependent approaches in Experiment I.                                    accuracy and average F1-score.
+   2) Subject-Independent Results: The model was evaluated                          Table V demonstrates that SWCNet achieves its high-
+under two experimental setups, aligned with the subject-                         est overall classification accuracy of 91.89%, and overall
+dependent approach. These setups are as follows.                                 F1-score of 0.9190 on the BCIC IV-2a dataset (experiment
+   Experiment setup I: We combine data from multiple subjects                    setup I). This accuracy is less than the average classifica-
+across all sessions. The combined data are then partitioned                      tion accuracy (97.42%) obtained for the subject-dependent
+into training, testing, and validation subsets with a ratio of                   approach. The lower overall accuracy can be attributed to
+50:30:20.                                                                        the variation in EEG data across different subjects. These
+   Experiment setup II: A leave-one-subject-out (LOSO) and                       intersubject variations arise because each subject will have dif-
+fivefold cross-validation approach was used. In LOSO (also                       ferent physiological parameters. Hence, SWCNet performance
+called cross-subject approach), we use the data from all                         is favorably for the BCIC IV-2a dataset.
+sessions of one of the subjects for testing while using the                         Figs. 8 and 9 present the confusion matrices for SWCNet
+data from all sessions of the remaining subjects for training.                   on the BCIC IV-2a and BCIC IV-2b datasets, respec-
+This ensured complete independence between the training and                      tively. The classwise overall accuracy achieved by the
+testing sets, contributing to a more generalized BCI model                       subject-independent approach is highest for the BCIC IV-2a
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+SINGH et al.: NOVEL CNN WITH SLIDING WINDOW TECHNIQUE FOR ENHANCED CLASSIFICATION                                                                        4783
+
+
+
+
+                                                               TABLE VI
+                    C OMPARISON OF S UBJECT-D EPENDENT C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE OF SWCN ET
+                                         W ITH D IFFERENT M ODELS ON THE BCIC-IV-2 A DATASET
+
+
+
+
+                                                              TABLE VII
+                    C OMPARISON OF S UBJECT-D EPENDENT C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE OF SWCN ET
+                                         W ITH D IFFERENT M ODELS ON THE BCIC-IV-2 B DATASET
+
+
+
+
+                                                              TABLE VIII
+                    C OMPARISON OF S UBJECT-D EPENDENT C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE OF SWCN ET
+                                                W ITH D IFFERENT M ODELS ON THE HGD
+
+
+
+
+dataset, with accuracy for a particular class being highest for                 For subject 5, SWCNet’s classification accuracy and F1-score
+the tongue class. These results further consolidate the point                   are lower than EEGNet in experiment setup II. However, when
+that SWCNet also performs most consistently with the BCIC                       considering the accuracy and F1-score averaged across all
+IV-2a dataset for a subject-independent approach.                               subjects, SWCNet outperforms all other models in both the
+                                                                                experiment setups.
+B. Comparative Analysis                                                            Table VII shows comparison of the models on the BCIC
+   We compared SWCNet with EEGNet [9], Shallow-                                 IV-2b dataset. The results demonstrate that SWCNet performs
+ConvNet [15], and DeepConvNet [15]. A comparison in                             better than the existing models across all subjects for exper-
+terms of accuracy and F1-score was performed with                               iment setup I. For subjects 2, 3, and 8, SWCNet’s accuracy
+both subject-dependent and subject-independent approaches.                      and F1-score are slightly lower than those of EEGNet, while
+Higher accuracy across these two scenarios indicates greater                    for subject 5, they are marginally lower than those of Shallow-
+generalizability of the model.                                                  ConvNet in experiment setup II. Nonetheless, when averaging
+   In addition, we provide a detailed comparison of these                       the accuracy and F1-score across different subjects, SWCNet
+findings.                                                                       performs reasonably better than the remaining models for both
+   1) Subject-Dependent Analysis: SWCNet was compared                           the experiment setups.
+against the above-mentioned models across all four datasets.                       Tables VIII and IX show comparison of the models on the
+Table VI shows comparison of these models on BCIC IV-2a                         HGD and OpenBMI datasets, respectively. Both the tables
+dataset. The results indicate that SWCNet performs better than                  demonstrate favorable results for SWCNet across all sub-
+the existing models across all subjects for experiment setup I.                 jects in experiment setup I. In experiment setup II, SWCNet
+
+
+      Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+4784                                                                                            IEEE SENSORS JOURNAL, VOL. 25, NO. 3, 1 FEBRUARY 2025
+
+
+
+
+                                                               TABLE IX
+                   C OMPARISON OF S UBJECT-D EPENDENT C LASSIFICATION ACCURACY (%) AND F1-S CORE OF SWCN ET W ITH
+                                              D IFFERENT M ODELS ON THE O PEN BMI DATASET
+
+
+
+
+                             TABLE X                                             (84.73%) and F1-score (0.8472) on the BCIC IV-2b dataset
+   C OMPARISON OF S UBJECT-I NDEPENDENT (E XPERIMENT S ETUP I)                   (experiment setup I). Table XI presents a comparison of
+C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE OF SWCN ET W ITH
+            D IFFERENT M ODELS ON THE T WO DATASETS
+                                                                                 the cross-subject performance of various models in experi-
+                                                                                 ment setup II. The results indicate that SWCNet consistently
+                                                                                 outperforms the other models, achieving the highest aver-
+                                                                                 age classification accuracy and F1-score on both the BCIC
+                                                                                 IV-2a and BCIC IV-2b datasets. Specifically, on BCIC IV-2a,
+                                                                                 SWCNet attains an average classification accuracy of 61.27%
+performs better than the existing models for most subjects,                      and an F1-score of 0.6073. On BCIC IV-2b, SWCNet further
+although some subjects exhibit marginally lower performance                      demonstrates its superiority with an average classification
+compared with the other models. Nevertheless, averaging                          accuracy of 75.84% and an F1-score of 0.7547. This show-
+accuracy and average F1-score across subjects reveal that                        cases the superior generalization capability of the proposed
+SWCNet demonstrates superior performance compared with                           model.
+other models in both the experiment setups.
+   These findings conclusively demonstrate the better classifi-                  C. Ablation Study
+cation capability of SWCNet over the existing models.                               An ablation study was conducted on all four datasets to
+   2) Subject-Independent Analysis: SWCNet was also com-                         assess the contribution of DA to the efficacy of the pro-
+pared with EEGNet, ShallowConvNet, and DeepConvNet on                            posed SWCNet architecture (refer Table XII). The removal
+the BCIC IV-2a and BCIC IV-2b datasets. The comparison                           of the sliding window technique responsible for DA led
+results in Table X demonstrate that SWCNet outperforms                           to a significant decrease in model accuracy and F1-score.
+other models, achieving the highest overall classification                       Despite this reduction, SWCNet-without DA still achieved
+accuracy (91.89%) and F1-score (0.9190) on the BCIC                              superior performance compared with the existing state-of-the-
+IV-2a dataset, and the highest overall classification accuracy                   art models. Furthermore, when DA is integrated with the
+
+       Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+SINGH et al.: NOVEL CNN WITH SLIDING WINDOW TECHNIQUE FOR ENHANCED CLASSIFICATION                                                                        4785
+
+
+
+
+                                                             TABLE XI
+   C OMPARISON OF S UBJECT-I NDEPENDENT (E XPERIMENT S ETUP II) C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE OF SWCN ET W ITH
+                                             D IFFERENT M ODELS ON THE T WO DATASETS
+
+
+
+
+                                                               TABLE XII
+                       A BLATION S TUDY: I MPACT OF DA ON AVERAGE C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE
+
+
+
+
+                           TABLE XIII                                              4) SWCNet-WAP: This variant removes the additional aver-
+  PARAMETER S ENSITIVITY: I MPACT OF D IFFERENT DL L AYERS ON                         age pooling layer of size (1, 8), reducing the data’s
+   AVERAGE C LASSIFICATION ACCURACY (ACC ) AND F1-S CORE
+                                                                                      dimensionality. The accuracy does not drop significantly,
+                                                                                      indicating this layer has a limited effect on classification.
+                                                                                   5) SWCNet-WD: This variant removes the dropout layer,
+                                                                                      which prevents overfitting. The SWCNet-WD variant
+                                                                                      shows the least decrease in performance (accuracy drop
+                                                                                      by 0.06% and F1-score drop by 0.0005) indicating that
+model, it yielded the most substantial improvement on the                             the model is likely well-trained with minimal overfitting.
+BCIC IV-2a dataset (experiment setup I), with accuracy and
+F1-score increasing by approximately 25% and 0.25, respec-                                              V. C ONCLUSION
+tively. These findings demonstrate that integrating DA                             We have proposed SWCNet, a novel CNN-based DL archi-
+enhances the model’s performance.                                               tecture integrated with the sliding window technique. The
+                                                                                proposed model significantly enhances classification accu-
+D. Parameter Sensitivity                                                        racy. Through extensive analysis and comparison on the
+   We conducted a parameter sensitivity analysis to gain valu-                  BCIC IV-2a, BCIC IV-2b, HGD, and OpenBMI datasets
+able insights into the contribution of different layers within                  across various scenarios, we have achieved remarkable results.
+the SWCNet architecture (refer Table XIII). We focused on                       The highest average classification accuracy achieved in the
+the BCIC IV-2a dataset (experiment setup I) where our model                     subject-dependent scenario is 97.42%, while the highest over-
+achieved the best results. We created variants of the model by                  all classification accuracy achieved in the subject-independent
+removing specific layers while keeping all others unchanged.                    scenario is 91.89%. In addition, the highest average accuracy
+   1) SWCNet-WSC: This variant removes the spatial convo-                       and overall accuracy in the class-based approach are 97.9%
+      lution layer, which is responsible for extracting spatial                 and 92.5%, respectively. These results indicate that SWCNet,
+      features from the EEG data. As shown in the table,                        with its higher accuracy and versatile training across different
+      the SWCNet-WSC variant exhibits the largest decrease                      datasets, can more accurately recognize human intentions
+      in performance (accuracy drop by 33.7% and F1-score                       from MI-EEG signals. This will bring BCI systems closer to
+      drop by 0.3386), suggesting that extracting spatial fea-                  integration into our daily lives.
+      tures from the EEG data using the spatial convolution                        The future work may focus on creating datasets designed
+      layer is crucial for SWCNet’s performance.                                for different experimental conditions and assess the proposed
+   2) SWCNet-WTC: This variant removes the temporal con-                        model’s performance across them.
+      volution layer, which extracts temporal features from
+                                                                                                                R EFERENCES
+      the data. The impact of this layer is less than the
+                                                                                 [1] J. van Erp, F. Lotte, and M. Tangermann, “Brain–computer interfaces:
+      spatial layer, indicating that spatial features play more                      Beyond medical applications,” Computer, vol. 45, no. 4, pp. 26–34,
+      significant than temporal features in the proposed model.                      Apr. 2012.
+   3) SWCNet-WPC: This variant removes the pointwise con-                        [2] L. F. Nicolás-Alonso and J. Gomez-Gil, “Brain computer interfaces,
+      volution layer, which refines the extracted features. The                      a review,” Sensors, vol. 12, no. 2, pp. 1211–1279, Jan. 2012.
+                                                                                 [3] M. Orban, M. Elsamanty, K. Guo, S. Zhang, and H. Yang, “A review
+      accuracy does not drop significantly, indicating this layer                    of brain activity and EEG-based brain–computer interfaces for rehabil-
+      has a limited effect on classification.                                        itation application,” Bioengineering, vol. 9, no. 12, p. 768, Dec. 2022.
+
+      Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+4786                                                                                             IEEE SENSORS JOURNAL, VOL. 25, NO. 3, 1 FEBRUARY 2025
+
+
+
+
+ [4] N. Padfield, J. Zabalza, H. Zhao, V. Masero, and J. Ren, “EEG-                [15] R. T. Schirrmeister et al., “Deep learning with convolutional neural
+     based brain–computer interfaces using motor-imagery: Techniques and                networks for EEG decoding and visualization,” Human Brain Mapping,
+     challenges,” Sensors, vol. 19, no. 6, p. 1423, Mar. 2019.                          vol. 38, no. 11, pp. 5391–5420, Nov. 2017.
+ [5] S. Cai, H. Li, Q. Wu, J. Liu, and Y. Zhang, “Motor imagery decoding           [16] M.-H. Lee et al., “EEG dataset and OpenBMI toolbox for three BCI
+     in the presence of distraction using graph sequence neural networks,”              paradigms: An investigation into BCI illiteracy,” GigaScience, vol. 8,
+     IEEE Trans. Neural Syst. Rehabil. Eng., vol. 30, pp. 1716–1726, 2022.              no. 5, May 2019, Art. no. giz002.
+ [6] H. Altaheri, G. Muhammad, and M. Alsulaiman, “Physics-informed                [17] B. Blankertz, R. Tomioka, S. Lemm, M. Kawanabe, and K.-R. Müller,
+     attention temporal convolutional network for EEG-based motor imagery               “Optimizing spatial filters for robust EEG single-trial analysis,” IEEE
+     classification,” IEEE Trans. Ind. Informat., vol. 19, no. 2, pp. 2249–2258,        Signal Process. Mag., vol. 25, no. 1, pp. 41–56, Jan. 2008.
+     Feb. 2023.                                                                    [18] R. Zhang, Q. Zong, L. Dou, X. Zhao, Y. Tang, and Z. Li, “Hybrid
+ [7] H. Tiwari et al., “Exploring deep learning models aimed at favorable               deep neural network using transfer learning for EEG motor imagery
+     optimization and enhancement of fiber optic sensor’s performance,”                 decoding,” Biomed. Signal Process. Control, vol. 63, Jan. 2021,
+     IEEE Sensors J., vol. 23, no. 17, pp. 20330–20337, Sep. 2023.                      Art. no. 102144.
+ [8] S. Z. Zahid, M. Aqil, M. Tufail, and M. S. Nazir, “Online classification      [19] S. U. Amin, H. Altaheri, G. Muhammad, W. Abdul, and M.
+     of multiple motor imagery tasks using filter bank based maximum-                   Alsulaiman, “Attention-inception and long- short-term memory-based
+     a-posteriori common spatial pattern filters,” IRBM, vol. 41, no. 3,                electroencephalography classification for motor imagery tasks in reha-
+     pp. 141–150, Jun. 2020.                                                            bilitation,” IEEE Trans. Ind. Informat., vol. 18, no. 8, pp. 5412–5421,
+ [9] V. J. Lawhern, A. J. Solon, N. R. Waytowich, S. M. Gordon, C. P. Hung,             Aug. 2022.
+     and B. J. Lance, “EEGNet: A compact convolutional neural network for          [20] H. Li, M. Ding, R. Zhang, and C. Xiu, “Motor imagery EEG classifica-
+     EEG-based brain–computer interfaces,” J. Neural Eng., vol. 15, no. 5,              tion algorithm based on CNN-LSTM feature fusion network,” Biomed.
+     Jul. 2018, Art. no. 056013.                                                        Signal Process. Control, vol. 72, Feb. 2022, Art. no. 103342.
+[10] S. Sakhavi, C. Guan, and S. Yan, “Learning temporal information for           [21] X. Tang, C. Yang, X. Sun, M. Zou, and H. Wang, “Motor imagery
+     brain–computer interface using convolutional neural networks,” IEEE                EEG decoding based on multi-scale hybrid networks and feature
+     Trans. Neural Netw. Learn. Syst., vol. 29, no. 11, pp. 5619–5629,                  enhancement,” IEEE Trans. Neural Syst. Rehabil. Eng., vol. 31,
+     Nov. 2018.                                                                         pp. 1208–1218, 2023.
+[11] J. Chen, Z. Yu, Z. Gu, and Y. Li, “Deep temporal–spatial feature              [22] K. Liu, M. Yang, Z. Yu, G. Wang, and W. Wu, “FBMSNet: A filter-bank
+     learning for motor imagery-based brain–computer interfaces,” IEEE                  multi-scale convolutional neural network for EEG-based motor imagery
+     Trans. Neural Syst. Rehabil. Eng., vol. 28, no. 11, pp. 2356–2366,                 decoding,” IEEE Trans. Biomed. Eng., vol. 70, no. 2, pp. 436–445,
+     Nov. 2020.                                                                         Feb. 2023.
+[12] P. Wang, A. Jiang, X. Liu, J. Shang, and L. Zhang, “LSTM-based EEG            [23] P. Saideepthi, A. Chowdhury, P. Gaur, and R. B. Pachori, “Sliding
+     classification in motor imagery tasks,” IEEE Trans. Neural Syst. Rehabil.          window along with EEGNet-based prediction of EEG motor imagery,”
+     Eng., vol. 26, no. 11, pp. 2086–2095, Nov. 2018.                                   IEEE Sensors J., vol. 23, no. 15, pp. 17703–17713, Aug. 2023.
+[13] C. Brunner et al., “BCI competition 2008—Graz data set A,” Inst.              [24] S. Ioffe and C. Szegedy, “Batch normalization: Accelerating
+     Knowl. Discovery, Graz Univ. Technol., Austria, vol. 16, pp. 1–6,                  deep network training by reducing internal covariate shift,” 2015,
+     Jan. 2008.                                                                         arXiv:1502.03167.
+[14] R. Leeb, C. Brunner, G. Müller-Putz, A. Schlögl, and G. Pfurtscheller,        [25] G. E. Hinton, N. Srivastava, A. Krizhevsky, I. Sutskever, and
+     “BCI competition 2008—Graz data set B,” Graz Univ. Technol., Graz,                 R. R. Salakhutdinov, “Improving neural networks by preventing co-
+     Austria, Tech. Rep., 2008, pp. 1–6.                                                adaptation of feature detectors,” 2012, arXiv:1207.0580.
+
+
+
+
+        Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:27:16 UTC from IEEE Xplore. Restrictions apply.
+

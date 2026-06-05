@@ -1,0 +1,10 @@
+defaults: ../preprocess_ea.yaml
+
+experiment:
+  name: groupkfold_physionet
+  dataset: physionet
+  n_splits: 5
+  models: [fbcsp_lda, csp_svm, riemann_mdm, riemann_ts_lr]
+  ea: both
+  skip_deep: true
+  output_dir: outputs_publishable/groupkfold/physionet

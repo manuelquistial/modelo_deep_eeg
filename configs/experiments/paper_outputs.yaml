@@ -1,0 +1,6 @@
+experiment:
+  name: paper_outputs
+  results_root: outputs_publishable
+  tables_dir: outputs_publishable/paper_tables
+  figures_dir: outputs_publishable/paper_figures
+  report: outputs_publishable/reports/reproducibility_report.md

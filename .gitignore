@@ -1,12 +1,27 @@
+# Python / tooling
 .venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
 .ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# IDE / OS
+.DS_Store
+.cursor/
+
+# Raw data and fixed benchmark outputs (large, local)
 /data/
 /outputs/
 *.npy
+*.joblib
+
+# Legacy feature dumps
 embeddings_subject_*.npy
 labels_subject_*.npy
 preds_subject_*.npy
@@ -14,4 +29,37 @@ subjects_subject_*.npy
 temporal_weights_subject_*.npy
 all_local_features_*.npy
 all_global_features_*.npy
-.DS_Store
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+
+# Publishable experiment outputs (regenerated on Paperspace; do not commit)
+/outputs_publishable/repeated_holdout/
+/outputs_publishable/groupkfold/
+/outputs_publishable/riemannian/
+/outputs_publishable/stats/
+/outputs_publishable/subject_level/
+/outputs_publishable/neurophysiology/
+/outputs_publishable/ea_diagnostics/
+/outputs_publishable/paper_tables/
+/outputs_publishable/paper_figures/
+/outputs_publishable/failed_runs/
+/outputs_publishable_smoke_test/
+
+# Generated logs/reports (keep implementation_plan.md in repo)
+outputs_publishable/reports/paperspace_execution_log.txt
+outputs_publishable/reports/reproducibility_report.md
+outputs_publishable/reports/implementation_summary.md
+
+# Literature PDFs (large); keep markdown/json/extracted text
+literature_comparison/pdfs/
+
+# Generated figures inside experiment runs
+**/confusion_matrix.png
+outputs_publishable/**/*.png
+outputs_publishable/**/*.pdf
+outputs_publishable/**/*.csv
+outputs_publishable/**/*.json
+outputs_publishable/**/*.tex

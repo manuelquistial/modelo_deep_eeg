@@ -39,7 +39,10 @@ def save_run_artifacts(
         yaml.safe_dump(cfg_dict, sort_keys=False), encoding="utf-8"
     )
 
-    pd.DataFrame({"y_true": y_true, "y_pred": y_pred}).to_csv(out_dir / "predictions.csv", index=False)
+    pred_dict: dict = {"y_true": y_true, "y_pred": y_pred}
+    if extra and "groups" in extra:
+        pred_dict["subject_id"] = extra["groups"]
+    pd.DataFrame(pred_dict).to_csv(out_dir / "predictions.csv", index=False)
 
     if history:
         pd.DataFrame(history).to_csv(out_dir / "training_history.csv", index=False)

@@ -1,0 +1,798 @@
+Received January 13, 2021, accepted January 20, 2021, date of publication February 1, 2021, date of current version February 12, 2021.
+Digital Object Identifier 10.1109/ACCESS.2021.3056088
+
+
+
+
+Advanced TSGL-EEGNet for Motor Imagery
+EEG-Based Brain-Computer Interfaces
+XIN DENG1 , (Member, IEEE), BOXIAN ZHANG                                      1 , NIAN YU          2 , KE LIU       1 , AND KAIWEI SUN1
+1 Key Laboratory of Data Engineering and Visual Computing, College of Computer Science and Technology, Chongqing University of Posts and
+
+Telecommunication, Chongqing 400065, China
+2 School of Electrical Engineering, Chongqing University, Chongqing 400044, China
+
+Corresponding author: Nian Yu (yunian@126.com)
+This work was supported in part by the Natural Science Foundation of Chongqing under Grant cstc2020jcyj-msxmX0284, in part by the
+Scientific and Technological Research Program of Chongqing (CQ) Municipal Education Commission under Grant KJQN202000625,
+in part by the National Nature Science Foundation of China under Grant 61806033 and Grant 61703065, and in part by the Key Industry
+Core Technology Innovation Project of CQ under Grant cstc2017zdcy-zdyfX0012.
+
+
+
+
+  ABSTRACT Deep learning technology is rapidly spreading in recent years and has been extensive attempts
+  in the field of Brain-Computer Interface (BCI). Though the accuracy of Motor Imagery (MI) BCI systems
+  based on the deep learning have been greatly improved compared with some traditional algorithms, it is still
+  a big problem to clearly interpret the deep learning models. To address the issues, this work first introduces
+  a popular deep learning model EEGNet and compares it with the traditional algorithm Filter-Bank Common
+  Spatial Pattern (FBCSP). After that, this work considers that the 1-D convolution of EEGNet can be explained
+  by a special Discrete Wavelet Transform (DWT), and the depthwise convolution of EEGNet is similar to
+  the Common Spatial Pattern (CSP) algorithm. Therefore, this work improves the EEGNet by using the
+  algorithm Temporary Constrained Sparse Group Lasso (TCSGL) to enhance its performance. The proposed
+  model TSGL-EEGNet is tested on the BCI Competition IV 2a and BCI Competition III IIIa datasets that
+  both are 4-classes classification MI tasks. The testing results show that the proposed model has achieved
+  78.96% (0.7194) average classification accuracy (kappa) on the dataset BCI Competition IV 2a, which are
+  greater than EEGNet, C2CM, MB3DCNN, SS-MEMDBF and FBCSP, especially on insensitive subjects.
+  The proposed model has also achieved 85.30% (0.8040) average classification accuracy (kappa) on the
+  dataset BCI Competition III IIIa, which are greater than the EEGNet, MFTFS et al. At last, this work
+  uses average-validation and stacking to further enhance the effect of the model. The 4-classes classification
+  average accuracy rates reach 81.34% and 88.89%, and the kappas reach 0.7511 and 0.8519 on dataset
+  BCI Competition IV 2a and BCI Competition III IIIa, respectively. Additionally, this work also uses the
+  Grad-CAM to visualize the frequency and spatial features that are learned by the neural network.
+
+
+  INDEX TERMS Motor imagery, BCI, CNN, FBCSP, temporary constrained sparse group Lasso.
+
+
+
+I. INTRODUCTION                                                                                process is also called the decoding, and the last process is
+To decode the MI EEG precisely is one of the key issues                                        called the classification. In the traditional machine learning
+for the BCI system. Generally, BCI system includes three                                       methods, motor imagery based BCI system mainly moni-
+aspects. The first one is the signal processing and data                                       tors sensorimotor rhythm (SMR). The SMR is an oscillatory
+enhancement. The second one is feature extraction, including                                   rhythm in electrical brain signals that originates in brain
+feature selection and fusion, and the last one is the classifi-                                regions involved in the preparation, control and execution of
+cation and recognition. Generally speaking, the former pro-                                    voluntary movements [9], [10]. The increase in activity in
+cess is called signal pre-processing, the latter two processes                                 a particular frequency band is called event-related synchro-
+are called signal decoding [1]–[8]. Alternatively, the second                                  nization (ERS), while the decrease in a particular frequency
+                                                                                               band is called event-related desynchronization (ERD) [9].
+   The associate editor coordinating the review of this manuscript and                         The motor imagery, motor activity and sensory stimulation
+approving it for publication was Vincent Chen            .                                     can trigger the ERSs and ERDs [11], [12]. The EEG for
+
+
+                     This work is licensed under a Creative Commons Attribution 4.0 License. For more information, see https://creativecommons.org/licenses/by/4.0/
+25118                                                                                                                                                                 VOLUME 9, 2021
+X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+the brain activity is usually divided into five distinct types:    time-varying and non-stationary, the 3D CNN cannot perform
+δ rhythm (< 4 Hz), θ rhythm (4-7 Hz), α rhythm (8-12 Hz),          as well as in the object detection task. Ha and Jeong [8]
+β rhythm (12-30 Hz), γ rhythm (> 30 Hz), and so                    used CapsuleNet to realize a MI BCI system. They trans-
+on. In references [4], [13], the α rhythm recorded from            formed EEG into graphs, and this transformation by using
+within the sensorimotor area of the cerebral cortex is called      the Short-time Fourier Transform (STFT) might lose some
+µ rhythm. For the left-hand and right-hand classification of       EEG information. To avoid this problem, they use the Capsu-
+motor imagery tasks, µ and β rhythm variations are used            leNet to process graph classification. Though the CapsuleNet
+to identify the type of task in progress. The γ rhythm is          was a good model in computer vision, some modifications
+reliably used in invasive MI BCI, but it is rarely used effec-     and improvements should be applied to it if we use it in the
+tively in scalp EEG. For the multi-object MI BCI system,           BCI system. Generally speaking, some traditional algorithms
+the common motion types include the left hand, right hand,         have good interpretability, and their computational speeds are
+foot and tongue motion [14]–[16]. These events have been           also fast. The neural network algorithms often get greater
+shown to produce significant discriminative changes in the         accuracy rate, but the training speeds are slow. It is not
+EEG signal relative to the background EEG signal. Addition-        easy to be understood how these neural networks to achieve
+ally, the feet motions are usually grouped together, and there     the results. Therefore, the main research of this paper is to
+is no distinction between left and right foot motion, as well as   make the neural network algorithm close to the traditional
+the movements of specific fingers. This is because the cortical    algorithm in interpretability, and keep or even improve its
+areas associated with these different movements are too small      accuracy.
+to produce distinctive ERD and ERS signals [9]. However,              This paper proposes the Temporal-constrained Group
+as far as we know, there is only one research [17] suggests that   Lasso EEGNet (TSGL-EEGNet) algorithm by using the reg-
+β rhythm has the potential to be used to distinguish imagery       ularization method, which is an convolutional neural network
+signals of movement between the left and right foot.               based approach for the motor imagery BCI system. Addi-
+   To process the EEG signals is challengeable because they        tionally, this method is based on the FBCSP and EEGNet,
+are non-stationary, and easily affected by external noise and      and improves them according to the Temporary Constrained
+prone to signal camouflage. Additionally, the EEG acqui-           Sparse Group Lasso (TCSGL) in [19]–[21]. The main work
+sition is difficult, and the signal-to-noise ratio (SNR) is        of the method proposed in this paper is to combine the tradi-
+low, and the size of EEG dataset (number of trials) is             tional method and the deep learning models with the theory
+usually small. In MI tasks, although the number of tar-            of MI BCI, and to discuss the interpretability of the neural
+get samples of each classification is relatively balanced,         network methods in BCI domain.
+there are difficulties in persons sensitivity. For example,           The rest of the paper is below. In Section II, we intro-
+based on the estimation of the classification effect of the        duce the dataset and pre-processing method. In Section III,
+state-of-the-art model on BCI Competition IV 2a dataset,           we review the related works, and present the mathematical
+about 30% of participants were not sensitive to MI tasks           formulation of our TSGL-EENet. In Section IV, we thor-
+(i.e. the effect of the same decoding method varies from           oughly evaluate the proposed model performance and use the
+person to person). Furthermore, the EEG signals were               visualization way to interpret it. After that, we make some
+also influenced by the subjects’ postures and emotions.            discussions about the persons sensitivity and the method of
+In recent years, there has been a lot of research on MI BCI.       using cropped training to select the optimal time-segment
+Ang et al. [18] proposed a classical algorithm FBCSP.              in Section V. Finally, we conclude the paper and propose a
+It should be noted that the FBCSP has the mathematical             methodology to guide the building of neural network struc-
+derivation and good interpretability. It won the champi-           tures in future work.
+onship of BCI Competition IV 2a/b dataset in 2008, but it
+is not enough effective in practice. Schirrmeister et al. [6]      II. DATA
+proposed the Deep Conv and Shallow Conv based on con-              In our work we use two public datasets. The first one is
+volutional neural network (CNN). The Deep Conv and Shal-           the BCI Competition IV 2a dataset (2008) [22], which is
+low Conv use one-dimensional (1-D) convolution to extract          a classical dataset and involves 4 classes of motor imagery
+effective information, and explore the convolution structure       samples of left hand, right hand, feet and tongue movements
+and the effectiveness of deep learning in MI BCI system.           from 9 subjects. The data were recorded by 22 Ag/AgCl
+Lawhern et al. [3] proposed the EEGNet, a universal deep           electrodes, sampled at 250 Hz and bandpass filtered between
+learning framework for the EEG tasks. The EEGNet is a com-         0.5 and 100 Hz and processed by 50 Hz notch filtering.
+mon Deep learning framework for multiple EEG paradigm,             One trial of the data were 4 seconds length, and it was
+which is based on the improvement of the Deep Conv and             obtained after 2 seconds fixation cross. The second dataset
+Shallow Conv, and achieves higher decoding accuracy and            is the BCI Competition III IIIa, which contends 4 classes of
+shorter training time. Zhao et al. [7] used a multi-branch         motor imagery EEG signals of left hand, right hand, feet and
+3D CNN method to classify MI EEG signals. Their method             tongue movements from 3 subjects. The data were recorded
+was somewhat like the popular feature pyramid networks for         by 60 electrodes, sampled at 250 Hz and bandpass filtered
+object detection in videos. However, because EEG signals are       between 1 and 50 Hz with Notchfilter on. One trial of the
+
+VOLUME 9, 2021                                                                                                             25119
+                                                                                  X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+data were 4 seconds length, and it was obtained after 2 sec-          5) By concatenating the features from all 9 filtering bands,
+onds blank screen and 1 seconds fixation cross with a short              the mutual information-based feature selection is car-
+beep. In data pre-procession, the data with missing values are           ried out on 2 × NW × 9 spatial filtering channels, and
+processed by using linear interpolation, detrending, filtering           NS filtering channel pairs are selected. A maximum of
+between 4 and 38 Hz and standardization. The EEG data in                 2 × NS features can be selected based on whether the
+the datasets do not require some special data pre-processing             selected features are already paired with each other.
+measures, and some pre-processing measurements are from               6) Because CSP is designed for two-classes classification
+existing studies [3], [6], [7], such as detrending, standardiza-         problems, in the case of multi-classes tasks, a one-vs-
+tion, filter and the method of removing artifact signals.                rest or one-vs-one policy must be specified. The former
+                                                                         will result in up to class × 2 × NS features in FBCSP.
+III. METHODS                                                          7) SVM and other maximum interval classification algo-
+A. FBCSP                                                                 rithms are used to effectively classify the features.
+The FBCSP algorithm is an excellent traditional algorithm,
+and its predecessor CSP algorithm is a kind of data-driven          B. EEGNet
+algorithm by learning a spatial filter (linear transformation) to   The EEGNet imitates the feature engineering of FBCSP in
+maximize the two kinds of variance of training data for classi-     some way. It consists of a 1-D convolution, a depth-wise con-
+fication. Spatial filter is mainly concerned with the channel of    volution and a separable convolution. The final classification
+EEG data. In the Motor Imagery paradigm, the left-hand and          is carried out through full connection layer and activated by
+right-hand motor imagery responses have different channel           the Softmax function.
+responses, so the CSP algorithm achieves better performance            In Fig. 1, the structure of EEGNet is represented as three
+in two-categories-classification tasks. The FBCSP adds the          parts: feature extraction, feature selection and classification.
+feature of frequency domain to CSP algorithm, which has             All of its convolution structures do not use the bias terms.
+been tested for a long time. The core of the FBCSP algorithm        There are several reasons to say that it imitates the FBCSP’s
+is described as follows [5], [18], [23]:                            feature engineering. In feature extraction, the EEGNet con-
+   1) All EEG data are filtered by filter banks, which are          sists of a 1-D convolution and a depth-wise convolution.
+       usually composed of 4-8 Hz, 8-12 Hz, · · · , 32-36 Hz.
+       Usually, the bandwidth is 4 Hz, and the number of
+       filters is 9.
+   2) After filtering, all the data is decomposed into nine
+       bands. The data on each band are calculated using
+       the CSP algorithm. This are done by maximizing the
+       following objective function as Eq. (1):
+                                      wT c1 w
+                                          P
+                     ∗
+                   w = arg max T P             P      ,       (1)
+                               w w
+                                         c1 +    c2 w
+               P          P
+       where c1 and Pc2 correspond   P to the channel covari-
+       ance matrix of        c1 and     c2 , respectively. w is a
+       spatial filter. This objective function, also known as a
+       Rayleigh Quotient, has an analytic solution, which is
+       equivalent to solving a generalized eigenvalue decom-
+       position (GEVD) problem. If x is the sample, i is
+       the class number, and j is the frequency band ordi-
+       nal, then the feature F is derived from the following
+       function Eq. (2):
+                           F i,j = wxi,j .                   (2)
+  3) The 2 × NW extreme eigenvalues (the maximum and
+     the minimum of NW eigenvalues) corresponding to the
+     spatial filter are selected. Then each maximum and
+     minimum eigenvalues of the spatial filter is matched
+     to each other accordingly (spatial filter channel pair).
+  4) The energy (variance) of the spatially filtered channel
+     is calculated and normalized to the total energy of the
+     channel in a given frequency band. The logarithm of
+     the energy is the final features.                              FIGURE 1. The structure of EEGNet.
+
+25120                                                                                                                         VOLUME 9, 2021
+X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+The essence of convolution is to calculate the similarity               By conclusion, the main ideas of the EEGNet and FBCSP
+between the convolution and the convolution kernel. This             algorithm are the same, which can be said that the EEGNet is
+is similar to the DWT process, and the convolution kernel            a deep learning algorithm evolved from the classic algorithm.
+is similar to the wavelet basis function with a fixed scale.
+Actually, the DWT can be realized by the filter bank. Hence,         C. TSGL-EEGNet
+the 1-D convolution without the bias is a filter bank for a sig-     In the field of deep learning technology of BCI, EEGNet is
+nal, and the convolution kernel is the filter. Therefore, when       a delicate algorithm, which has a clear explanation. But it is
+1-D convolution kernel convolutes along the time dimension           still not enough, since its feature selection part is difficult to
+for a single channel, it can be regarded as filtering the fre-       be understood, and the increasing of the feature space will
+quency. The depth-wise convolution convolutes the data on            lead to over-fitting. Keeping the main body of the EEGNet
+the channel dimension, and obtains a set of spatial filters.         unchanged, increasing the interpretability of the feature selec-
+Each spatial filter represents a linear transformation that maps     tion part and reducing the over-fitting cases will be a good
+all channels to one feature. The whole procedure is similar to       beginning to solve the problem. To deal with the over-fitting,
+the FBCSP algorithm.                                                 the regularization is a good method to solve the problem, and
+   The EEGNet’s feature extraction can be expressed by the           it also has good interpretability. In addition, the regularization
+following formula Eq. 3:                                             is also one of the feature selection methods. Therefore, this
+                     F i,j = w(f j xi ) = wxi,j ,             (3)    paper proposes a Temporal-constrained Sparse Group Lasso
+                                                                     EEGNet (TSGL-EEGNet) using regularization.
+where F is the features, and x is the samples, and w is the              The structure of the TSGL-EEGNet is shown in Fig. 2
+spatial filters, and f is the frequency filters. i and j represent   and Table 1. The main difference from EEGNet is the
+the category number and the frequency filter ordinal, respec-        Feature selection section. Unlike the EEGNet’s separable
+tively. It can be seen that Eq. (2) is equivalent to Eq. (3)         convolution, only 1-D convolution is used here for better
+in general, and the latter has more variable parameters and          interpretability. The TSGL penalty is added to this convolu-
+higher degrees of freedom. Together, the feature learning part       tion, which makes the weight matrix of this layer change in
+of the EEGNet consists of a filter bank (1-D convolution) and        the direction of penalty minimization during the training.
+a spatial filter (depth-wise convolution), which is the main
+content of the FBCSP.
+   In feature selection, it convolutes time-spatial features
+in different frequencies with 1 × 16 depth-wise convolu-
+tion firstly and then using 1 × 1 point-wise convolution to
+mix them, which cannot be exactly understood. As a fact,
+the separable convolution is not exactly choosing features but
+mixing them with different weights to imitate the selection.
+In practical application, the feature selection part increases
+the robustness of the EEGNet and improves the accuracy
+of decoding and classification. Feature selection is also a
+very important part of CSP algorithms. The feature selection
+methods commonly used in MI BCI [18], [23] such as the
+Mutual Information based Best Individual Feature (MIBIF),
+the Mutual Information-based Naïve Bayesian Parzen Win-
+dow (MINBPW), the Mutual Information based feature selec-
+tion (MIFS), the Fuzzy-Rough set-based Feature Selection
+(FRFS), the Mutual Information-based Rough Set Reduction
+(MIRSR). The regularization algorithms are also used as
+feature selection methods recently by Zhang et al. [19], and
+Jin et al. [24], [25]. Choosing the appropriate feature selection
+method is a good way to improve the model effect.
+   At last, in the classification part, its input includes three
+domains: time, frequency and spatial domains. The time
+domain features are generated by time dimension. The fre-
+quency domain features are generated by 1-D convolution
+and separable convolution. The spatial domain features are
+generated by depth-wise convolution based on frequency
+domain features. After all these features are selected, four
+probabilities are output through a fully connected layer with
+the activation function of Softmax to get the category.              FIGURE 2. The structure of TSGL-EEGNet.
+
+
+VOLUME 9, 2021                                                                                                                   25121
+                                                                                 X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+TABLE 1. Structure of TSGL-EEGNet.
+
+
+
+
+   The TSGL regularization is shown in Fig. 3. The black
+squares represent the inhibition of parameters, and the
+white squares represent the activation, and the gray squares
+also represent the activation but with small weights. The
+Group Lasso (GL) can inhibit groups which is repre-
+sented by outgoing vectors. The Sparse Group Lasso (SGL)
+can inhibit some parameters in the activated groups. The
+Temporal-constrained Lasso (TL) can keep temporal domain
+being smooth. The GL will inhibit or activate a whole group
+when it is affected, and the SGL will inhibit some parameters
+of the activated groups based on the GL, and the TL will
+decrease or increase some parameters to keep the difference
+of a group in temporal domain being small. In Fig. 3, it can
+be seen that the TSGL regularization consists of the TL and
+SGL. In order to explain these Lassos in mathematics, some
+symbols are defined as follow. In the N classification prob-
+lem, for one sample, the selected feature can be expressed as
+wF , where the feature obtained by the feature learning part is
+a 2-D matrix named F and the 1-D convolution weight matrix
+                                                                  FIGURE 3. The GL, SGL and TSGL regularization. The black squares
+is a 3-D matrix named w.                                          represent the inhibition of parameters, and the white squares represent
+   The purpose of the Temporary Constraint is to keep the         the activation, and the gray squares also represent the activation but with
+time domain features smooth and reduce the distortion caused      small weights. Group Lasso (GL) can inhibit groups which is represented
+                                                                  by outgoing vectors. Sparse Group Lasso (SGL) can inhibit some
+by other regularization, so as to be closer to the real EEG       parameters in the activated groups. Temporal-constrained Lasso (TL) can
+signals. The Temporary Constraint uses the features of the        keep temporal domain being smooth.
+latter time minus the features of the former time. Thus, when
+the temporal domain is smooth enough, the temporary loss          Group Lasso, the activated group elements can also have
+should be close to 0. By assuming that there are T timesteps      the sparsity. The frequency and spatial domain features are
+in EEG data, the features of 1 to T − 1 timesteps are wF 1        grouped in this paper to select appropriate frequency and
+and 2 to T timesteps are wF 2 , so the Temporal-constrained       spatial features, and the time domain features of these can also
+Lasso can be expressed as kwF 2 − wF 1 k1 .                       be selected by L1 Norm,P which
+                                                                                               √ can be expressed
+                                                                                                               P as   pkwkP  2,1 +
+   The Sparse Group Lasso, which consists of a Group Lasso        kwk1 . kwkP 2,1   =      g∈w    |g|kgk2 =       g∈w   |g|    g2 ,
+and a L1 Norm, can make the groups sparse. In the Sparse          kwk1 = w |w|, where g is a group vector that is generally
+
+25122                                                                                                                         VOLUME 9, 2021
+X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+the length of a dimension of w. |g| is the length of the              In order to obtain the good performance for both accuracy
+vector. In this paper, we treat the features calculated by the     and loss metrics, we proposes a statistical optimal retention
+feature selection convolution as a group, and each feature is      strategy. The strategy focuses on the loss optimizations, but
+an element of the group vector. Therefore |g| represents the       allows 2.5% to float up and down, which is considered as
+length of the dimension that determines the number of output       an insignificant change. If the model trained by the epoch
+features in the matrix w.                                          has a better rate of accuracy appearing within the range of
+   The final weight matrix w∗ is obtained by solving the           fluctuations, the model will be saved since the loss optimality
+following problem Eq. (4):                                         is a constant at this point. If the loss drops significantly,
+                               N
+                                                                   the current model is considered to be the optimal model.
+                    1 XX                                          Otherwise, the current model will not be saved because its
+w∗ = arg min −                Softmax(awF + b)i yi
+            w,a,b n
+                       x i=1
+                                                                   performance has not been improved.
+                                                                     The method used in this paper is a combination of
+         +(1 − yi )ln(1 − Softmax(awF + b)i )
+                                                                   early-stop strategy and statistical optimal retention strategy,
+          β1            β2        β3
+         + kwk2,1 + kwk1 + kwF 2 − wF 1 k1 ,                 (4)   which not only retains the advantages of the early-stop strat-
+           n             n         n                               egy but also preserves optimal model.
+where β1 , β2 , β3 are the regularization coefficients, and x is
+the sample, and y is the ground truth. a, b is the Layer FC’s
+weight and bias, respectively. n is the number of samples.         E. ENSEMBLE METHOD
+Let σ represent the activation function (here is Softmax) and      The cross-validation is often used in the training process
+z represent awF + b, the problem’s loss function C can be          of the BCI system to improve the generalization perfor-
+expressed as Eq. (5):                                              mance. The cross-validation usually divides the training set
+                                                                   into K equal parts, one of which is used as the validation
+             N
+         1 XX                                                     set, and the rests are used as the training set to train the
+C =−           σ (z)i yi + (1 − yi )ln(1 − σ (z)i )
+                                                   
+         n x                                                       model. This is also called K-fold cross-validation. When
+                 i=1
+                                                                   evaluating the model’s performance, the average perfor-
+          β1       β2     β3
+         + kwk2,1 + kwk1 + kwF 2 − wF 1 k1 .                 (5)   mance of each cross-validation model on the test set is
+          n        n      n                                        taken as the performance of this model on the data set. The
+  The gradient descent method is used to obtain the approx-        cross-validation method will reduce the size of the training
+imate solution of the problem, where the gradient is Eq. (6),      set and the validation set, and it is suitable for the large-sized
+Eq. (7), and Eq. (8):                                              and medium-sized data sets. For the small-sized data sets,
+                  N                                                the model training and verification will be insufficient, espe-
+     ∂C
+           
+          1 XX                                 w                   cially the neural network models are difficult to train. Actu-
+                     aF σ (z)i − yi + β1 |g|
+                                       p
+        =
+     ∂w   n x                                 kwk2                 ally, the training data size is usually small in MI BCI feild,
+                 i=1
+                                                                  so it is not suitable to directly use the cross-validation method.
+          +β2 sgn(w) + β3 sgn(wF 2 − wF 1 ) ,      (6)             Therefore, this paper adopts the average-validation method
+                                                                   and simplified bagging method to improve the performance
+              N
+     ∂C   1 XX                                                     of the model.
+                wF σ (z)i − yi ,
+                              
+        =                                                    (7)
+     ∂a   n x                                                         The average-validation method is to perform K indepen-
+                   i=1
+                    N
+                                                                   dent training on the same training set and test set. It requires
+     ∂C   1       XX                                               random initialization for each independent model, and the
+                              σ (z)i − yi .
+                                         
+        =                                                    (8)
+     ∂b   n         x
+                                                                   feeding order of the training data is also random. That is to
+                        i=1
+                                                                   say, each fold is trained from a different starting point, and
+   After the final weight matrix w∗ is obtained, the selected      the trajectory of gradient descent is different as well. These
+features can be acquired with formula Eq. (3).                     ensure that the models will not converge to the same local
+                                                                   minimum with a high probability, and will converge to the
+D. MODEL SAVING                                                    global minimum (if it exists), which means it has a certain
+In this paper, a special method is used to save the best           generalization performance.
+performed model in training procession, which is considered           The bagging method is a classical application of ensem-
+to be an aspect of the performance improvement of the model.       ble learning. It generally generates multiple weak classifiers
+The model was usually trained with either early stopping           through data sampling. Whether we use the cross-validation
+strategy or optimal retention strategy. The early stop strategy    or the average validation, K models will be eventually pro-
+can effectively reduce the training time, but setting the tol-     duced in the validation procedure. The performance of these
+erance to the early stop is a big issue. If the tolerance is too   K models is different, and none of them are very strong
+small, the model may not be trained to optimum, and too large      classifiers especially for insensitive subjects. If they can
+will waste a lot of computing resources and time. In practice,     play a role in forecasting together, the better results can be
+usually only one of the accuracy or loss metrics is considered.    achieved. So this paper uses a simplified bagging method,
+
+VOLUME 9, 2021                                                                                                                 25123
+                                                                                         X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+that is called stacking, to integrate them, thereby enhancing               in Table 3. It can be seen that our method reaches 81.34%
+the performance of the final model.                                         average accuracy and 0.7511 average kappa, which is obvi-
+   We let c1 , . . . , ck be the classifiers, 1 ≤ k ≤ K , x be              ously higher than other methods. When comparing with the
+the training trials and y be the groudtruth. The simplified                 EEGNet, it can be seen that the TSGL-EEGNet has effec-
+bagging method can be expressed as finding the optimal                      tively reduced the over-fitting and improved the accuracy.
+weights α1 , . . . , αk so that α1 c1 (x) + · · · + αk ck (x) − y is
+                                                             
+                                                                            When comparing with other neural network methods such
+the smallest. That is to solve the following optimal problem                as the MB3DCNN, it can be seen that the TSGL-EEGNet
+as Eq. (9) shown:                                                           usually has more advantage in kappa than accuracy, which
+                                                                            explains that the TSGL-EEGNet performs well in all classes.
+           arg min α1 c1 (x) + · · · + αk ck (x) − y,
+                                                     
+               α1 ,...,αk                                                   When comparing with other traditional methods such as the
+           s.t. α1 + · · · + αk = 1,                                        SS-MEMDBF, it can be seen that the TSGL-EEGNet has
+                α1 , . . . , αk ≥ 0.                                  (9)   more advantage on insensitive subjects, which explains that
+                                                                            the TSGL-EEGNet is more suitable for most people. As
+Let A = [α1 , α2 , . . . , αk ], and let C(x) = [c1 (x), c2 (x), . . . ,    shown in Table 4, the two-sided p-values of the proposed
+ck (x)]T . Eq. (9) can be rewritten as the Linear Regres-                   method and the others are all less than 0.05. The T Test
+sion (LR) problem shown in Eq. (10):                                        shows the two results do not have the same mean and the
+                        1                                                   KS Test shows the two results are differently distributed. This
+                 arg min kAC(x) − yk22                 (10)                 shows that the method proposed in this paper is a significant
+                      A 2
+                                                                            improvement on the former, which is more effective and
+Since the weight matrix A has found, it can use Eq. (11) to                 robust.
+classify trials.                                                               To fully prove the effectiveness of TSGL-EEGNet, we use
+                            Class = AC(x)                           (11)    an additional dataset BCI Competiton III IIIa to test the pro-
+                                                                            posed method. The Grid Search results are shown in Table 5.
+IV. RESULTS & VISUALIZATION                                                 The 5-fold average-validation results are shown in Table 6.
+A. RESULTS                                                                  We don’t calculate the p-value on this dataset, because the
+Although we hope to present a complete end-to-end model                     number of subjects in this dataset is too small that the p-value
+in this paper, the regularization coefficient still needs to be             is not statistical. It can be seen that ‘TSGL-EEGNet (16,10)
+specified artificially. In order to avoid the influence of subjec-          stacking’ reaches 88.89% average accuracy and 0.8519 aver-
+tive priori information on the model, the grid search method                age kappa, which higher than 1st method by 7.48% and
+is used to select the regularization coefficients L1 , L2,1 and             higher than the EEGNet by 11.04% according to kappa. This
+TL1 automatically. L1 is the coefficient of Sparse Lasso, and               can show that the proposed method could be widely used.
+L2,1 is the coefficient of the Group Lasso, and TL1 is the
+                                                                            B. VISUALIZATION
+coefficient of the Time Constrain penalty. Each grid search
+training uses 5-fold average-validation. The results on BCI                 All of the following model-related images are determined by
+Competition IV 2a dataset are shown in Table 2.                             the specific data and models. This does not mean that other
+                                                                            data and models will have the same images, but some com-
+                                                                            mon knowledge can be gained from it. The best model is from
+TABLE 2. Selection of regularization parameters for different subjects on
+BCI Competition IV 2a dataset.                                              Subject 03, which has the highest decoding accuracy, and here
+                                                                            we use it as the visualization model. In feature selection, both
+                                                                            the EEGNet and the proposed model use 1-D convolution,
+                                                                            so the frequency feature of the model may be decided by
+                                                                            both of the 1-D convolution of feature extraction and selection
+                                                                            section. It adds the unnecessary complexity to interpret the
+                                                                            whole model. Therefore, in this part, the 1-D convolution
+                                                                            and its variant in feature selection are replaced by 1 × 1
+                                                                            convolution. This can effectively avoid the interference of
+                                                                            other factors, and show more clearly what the model learned,
+                                                                            and explain the role of TSGL regularization.
+                                                                               We produce the Fourier Transform on the results for each
+                                                                            frequency filter to find the certain frequency features that the
+                                                                            model learned. As shown in Fig. 4, the horizontal axis is the
+   The 5-fold average-validation training using the regu-                   frequency, and the vertical axis is the amplitude. Different
+larization coefficients selected by grid search is compared                 colors of lines represent the different channels, and different
+with other baseline models. It should be noted that the                     frequency-filters are represented as different letters. From
+TSGL-EEGNet and the EEGNet used the saving-model                            this we can see that the filters are obtained from different
+method are proposed in this paper. The results are shown                    frequency information, and different channels (electrodes)
+
+25124                                                                                                                                VOLUME 9, 2021
+X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+TABLE 3. Accuracy (kappa) of different models on the dataset BCI Competition IV 2a. The TSGL-EEGNet and EEGNet are using 5-fold average-validation,
+and the others are from references.
+
+
+
+
+TABLE 4. Accuracy (kappa)’s p-value of the purposed method ‘TSGL-EEGNet (16,10) stacking’ to other methods on the dataset BCI Competition IV 2a.
+
+
+
+
+TABLE 5. Selection of regularization parameters for different subjects on    the data is standardized that the mean is 0 and the standard
+BCI Competition III IIIa dataset.
+                                                                             deviation is 1. Additionally, the distribution of the weights
+                                                                             should be the same as the data, that is, the mean is 0 and the
+                                                                             standard deviation is 1, and some weights could be negative
+                                                                             values. If two spatial patterns are complementary, they are
+                                                                             somewhat equivalent since they maybe work together for a
+                                                                             signal which has both positive and negative values. It can be
+                                                                             found in Fig. 6 that after passing through the frequency filter
+                                                                             of similar frequency band, the spatial filter is also similar such
+                                                                             as filter (b), (g), (k), and there are some symmetrical filters
+are similar in one filter. Some filters have similar effects,                in each group of spatial filters such as filter (b, 7) and (b, 8),
+such as Filter (e), (f) and (g), but some filters are not doing              (k, 3) and (k, 4). It also can be seen that there are many spatial
+anything, such as Filter (l) and (p).                                        filters that pick up features near C3, C4,Cpz, and Pz, which
+   Fig. 5 averages the frequency features in Fig. 4 for each                 are common spatial features that distinguish left and right
+class. As shown in Fig. 5, it can be seen that the frequency                 hand imagery.
+bands mainly cover 0 − 30 Hz and 38 − 55 Hz. According to                       In feature selection, the visualized model uses 1 × 1
+[6], [18], we divide the frequency into 5 bands, where 2−8 Hz                convolution and TSGL regularization penalty to select and
+is δ and θ rhythm, and 8−12 Hz is α rhythm, and 12−20 Hz is                  fuse the features. The inputs of this part are all the features,
+low β rhythm, and 20 − 30 Hz is high β rhythm, and > 30 Hz                   and the outputs are the selected and fused features. In this
+is γ rhythm. Therefore, the frequency features learned by the                paper, the selected and fused features are called new features,
+model cover δ, θ, α, low β, high β and γ rhythm. What’s                      while the unselected features are called original features.
+more, there is not much difference in the frequency features                 These new features are the direct basis for classification,
+of each class. It shows that the unselected features can’t use               so they represent what the model really learns and what is
+directly to classify EEG signals.                                            really useful in the data. If the regulation of the new features
+   The similarities of the depth-wise convolution and the                    is reflecting by using Grad-CAM [30] algorithm, the features
+CSP spatial filtering have been illustrated in Section III-B.                that contribute to classification can be obtained. This paper
+To conveniently observe the depth-wise convolution, the spa-                 presents an overview of the features of each class, as shown
+tial topology map is shown in Fig. 6, in which it uses the                   in Fig. 7 and Fig. 8.
+numbers to represent these spatial filters and uses the same                    It can be seen that the selected new features are clearly dis-
+letters in Fig. 4 to represent frequency filters. In our method,             tinguished among the different classes. In terms of frequency
+
+VOLUME 9, 2021                                                                                                                                25125
+                                                                                               X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+FIGURE 4. TSGL-EEGNet original frequency features on Subject 03 for each frequency filter.
+
+
+TABLE 6. Accuracy (kappa) of different models on the dataset BCI Competition III IIIa. The TSGL-EEGNet and EEGNet are using 5-fold average-validation,
+and 1st and 2nd are the winners of the competition. (1st : Fisher ratios of channel-freqency-time bins, feature selection, designing mu and beta passband,
+multiclass CSP, SVM; 2nd : surface laplacian, 8-30Hz filter, CSP (one-vs-rest), SVM+kNN+LDA, bagging).
+
+
+
+
+                                                                                between the left and right hands. Moreover, there are some
+                                                                                differences between the right hand and the tongue, mainly
+                                                                                reflected in the inhibition of the δ, θ, α rhythm of the right
+                                                                                hand motor imagery, which is the new knowledge for MI
+                                                                                tasks. In terms of the spatial features, as shown in Fig. 8,
+                                                                                the model obviously has leaned the different features for each
+                                                                                class and the interesting-band. From Fig. 8(a) and Fig. 8(b),
+                                                                                it can be known that the model exactly picks up features near
+                                                                                C3 and C4 electrodes for right and left hand motor imagery,
+                                                                                and it is well matched ERD and ERS in α and β bands.
+                                                                                The left hand (Fig. 8(a)) extracts the features of the right
+                                                                                hemispheres in α band and the left and right hemispheres
+                                                                                in β band, and the right hand (Fig. 8(b)) is the opposite
+                                                                                of the left hand. When we consider it combining with the
+                                                                                frequency features, it is consistent with the known facts that
+                                                                                the amplitude of the contralateral sensorimotor cortex signal
+FIGURE 5. TSGL-EEGNet original frequency features on Subject 03 for
+each class.                                                                     increases and the contralateral β band signal decreases simul-
+                                                                                taneously. Fig. 8(c) reveals that the spatial feature of the foot
+                                                                                motor imagery is concentrated on electrode Cpz. Fig. 8(d) is
+features, the left hand (Fig. 7(a)) and the foot (Fig. 7(c))                    similar to Fig. 8(a), but the tongue movement’s δ, θ, α rhythm
+have relatively high amplitude features, and the right hand                     amplitude are lower than left hand. Additionally, it can be
+(Fig. 7(b)) and the foot (Fig. 7(d)) features have low ampli-                   found that 38-55 Hz γ band frequency features amplitude for
+tude. It mainly show that the rhythm of δ, θ, α, β of the                       all classes are almost the same and the spatial teatures are the
+right hand is inhibited to the left hand at 2-25 Hz. The foot                   same too, which suggests γ band signals may be noises.
+(Fig. 7(c)) is similar to the left hand, which implies that                        Compared with the EEGNet (Fig. 9 and Fig. 10), the pro-
+spatial features may be different. The difference between the                   posed method has some similarities with EEGNet. But
+features of the foot and tongue (Fig. 7(d)) is similar to that                  the EEGNet’s features has little difference among classes
+
+25126                                                                                                                                       VOLUME 9, 2021
+X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+FIGURE 6. Topomaps of TSGL-EEGNet depth-wise convolution weights.
+
+
+
+
+                                                                      FIGURE 8. TSGL-EEGNet selected spatial features in interesting-band on
+                                                                      Subject 03 for each class.
+
+
+
+
+                                                                         In addition to the above results, this paper also does some
+                                                                      research to try to explain why different subjects have different
+                                                                      accuracy rates, even uses the same best model. This issue will
+FIGURE 7. TSGL-EEGNet selected frequency features on Subject 03 for
+each class.                                                           be discussed in detail in the discussion section.
+
+                                                                      V. DISCUSSION
+and interesting-bands. It can be found that the EEGNet                A. THE PROBLEM OF PERSON SENSITIVITY
+seems to pay more attention to γ band features than                   To analyze this problem of the person sensitivity, this paper
+the TSGL-EEGNet from Fig. 9 and Fig. 10. Additionally,                chooses another Subject, Subject 06, whose model has the
+the EEGNet don’t have significantly ERD and ERS from                  worst decoding accuracy. We compares his optimal model
+Fig. 10(a) and Fig. 10(b). These may be the performances of           with the optimal model in section IV-B to find out the feature
+over-fitting. The proposed method can learn more different            difference between them. As shown in Fig. 11 and Fig. 12,
+features of classes, and can effectively avoid the over-fitting,      we can find that the EEGNet is difficult to learn enough useful
+which is an important reason why this method is better than           information from the subject data with low decoding accu-
+the EEGNet.                                                           racy. There is no significant difference in frequency features
+
+VOLUME 9, 2021                                                                                                                         25127
+                                                                                      X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+                                                                       FIGURE 12. EEGNet selected spatial features in interesting-band on
+                                                                       Subject 06 for each class.
+
+
+
+
+FIGURE 9. EEGNet selected frequency features on Subject 03 for each
+class.
+
+
+
+
+FIGURE 10. EEGNet selected spatial features in interesting-band on     FIGURE 13. TSGL-EEGNet selected frequency features on Subject 06 for
+Subject 03 for each class.                                             each class.
+
+
+
+
+                                                                       FIGURE 14. TSGL-EEGNet selected spatial features in interesting-band on
+                                                                       Subject 06 for each class.
+
+
+
+
+                                                                       features of Subject 03, as shown in Fig. 7 and Fig. 8. This is
+                                                                       probably the reason why the models don’t work for everyone,
+                                                                       and it is a common phenomenon that may be related to some
+                                                                       specific factors such as skull thickness, density, shape, and so
+FIGURE 11. EEGNet selected frequency features on Subject 06 for each
+class.                                                                 on. How to adapt the model to all people, or how to develop
+                                                                       a targeted model to help these people, will be a long-term
+among the four classes, and the spatial features repeat the            problem to be solved.
+same pattern in all interesting-bands of one class.
+   By using the TSGL-EEGNet, the result is better, but is still        B. SELECTING THE OPTIMAL TIME-SEGMENT
+not enough. As shown in Fig. 13 and Fig. 14, we can find that          Since the EEG signals are time-varying and non-stationary,
+the four classes have some obvious differences in frequency            it is important to select the optimal time-segment. Generally,
+features as well as the spatial features. This may be the reason       there are three kinds of methods to select time windows,
+why the performance of the TSGL-EEGNet is better than                  experience-based [13], [23], [26], [31], search-based [32],
+the EEGNet. But these features are not as remarkable as the            and data-based. The experience-based method is obviously
+
+25128                                                                                                                             VOLUME 9, 2021
+X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+not good, and the search-based method requires training a           and the 0.7511 average classification kappa on the BCI Com-
+huge number of models, so both are not suitable for the             petition IV 2a dataset. Its 4-classes classification accuracy
+neural networks. However, the data-based methods almost             and kappa are significantly greater than EEGNet (74.95%
+depend on the data, which would serve as the best choice            0.6658), SS-MEMDBF (0.60), MB3DCNN (75.02% 0.644),
+for neural networks. Additionally, the cropped training also        C2CM (74.46% 0.659) and FBCSP (67.75% 0.57). Addition-
+would be a good choice to select the time-segment when using        ally, the proposed method also reaches 88.89% average clas-
+a point-to-point model. The cropped training is usually used        sification accuracy and 0.8519 average classification kappa
+in the popular researches referred to [6], [7], and it is a data    on the BCI Competition III IIIa dataset, which is greater than
+reinforcement method during training period. It crops a long        the others as well. The results show that it is an effective way
+data into many intersecting short ones which share the same         to improve the classification accuracy by merging the tradi-
+label, which likes using a window to slide throughout the long      tional machine learning and deep learning algorithms. Fur-
+data. The data size can be increased greatly using this method,     thermore, the proposed model is somewhat interpretable. On
+so that the size of the EEG data set is no longer small. For        one hand, after the mathematical explanation, it can be proved
+example, the dataset used in this paper has a 4-second motor        that the proposed deep learning model and CSP algorithms
+imagery time and is sampled at a rate of 250 Hz, so each            have equivalent feature extraction and selection parts. On the
+sample has 1000 data points. Since the effective rhythm of          other hand, through the visualization, it can also be proved
+motor imagery is usually greater than 4 Hz (α, β, γ rhythms),       that the proposed model can learn meaningful features, such
+and according to the Nyquist-Shannon Sampling Theorem,              as the features of reflecting ERSs and ERDs in α and β bands.
+this paper uses a time window of 2s (500 data points) to cut        From the visualization, it can be seen that the deep learning
+the data every 25 (< 31.25) data points. Thus, each sample          models can have the same interpretability as some traditional
+can generate 21 data, which all share the same label. That is,      machine learning algorithms. Thus, the interpretability of the
+the training and the test data size are both 21 times larger        deep learning models could be achieved by incorporating
+than before and the data length is reduced to 2s. During            with some traditional mathematical algorithms. But this is
+the training, the samples will be classified according to the       not to say that we should be content with the traditional
+different subjects, and then each subject’s samples will be         algorithms. On the contrary, the deep learning has the advan-
+loaded in random order.                                             tages that some traditional algorithms cannot achieve, such as
+   The cropped training method crops a long data into many          end-to-end models, adaptive hyperparameters learning, and
+intersecting short ones which share the same label. Thus,           high classification accuracy. This suggests that we need to
+a new neural network structure for short data is obtained.          re-study in the traditional fields to get better, faster and more
+As a fact, the main discrimination between online and offline       interpretable neural network models.
+methods is the time requirement for computing. Online
+methods emphasize immediacy which is difficult for offline          REFERENCES
+methods. However, the time requirement can be cut down               [1] P. Bashivan, I. Rish, M. Yeasin, and N. Codella, ‘‘Learning representations
+using the cropped training when a method can output the clas-            from EEG with deep recurrent-convolutional neural networks,’’ 2015,
+                                                                         arXiv:1511.06448. [Online]. Available: http://arxiv.org/abs/1511.06448
+sification results in the confidence level. Thus, the cropped
+                                                                     [2] M.-A. Li, Y.-F. Wang, S.-M. Jia, Y.-J. Sun, and J.-F. Yang, ‘‘Decoding of
+training can help the offline methods convert to the online              motor imagery EEG based on brain source estimation,’’ Neurocomputing,
+methods. The classification confidence level is the variance             vol. 339, pp. 182–193, Apr. 2019.
+computed by the outputs from the last Softmax activation             [3] V. J. Lawhern, A. J. Solon, N. R. Waytowich, S. M. Gordon, C. P. Hung, and
+                                                                         B. J. Lance, ‘‘EEGNet: A compact convolutional neural network for EEG-
+layer. Obviously, the larger the variance is, the higher the con-        based brain–computer interfaces,’’ J. Neural Eng., vol. 15, no. 5, Oct. 2018,
+fidence is presented. For N classes task, the largest variance is        Art. no. 056013.
+N −1                                                                 [4] N. Padfield, J. Zabalza, H. Zhao, V. Masero, and J. Ren, ‘‘EEG-based
+ N2
+      would be reached when outputs have only one element
+                                                                         brain–computer interfaces using motor-imagery: Techniques and chal-
+values 1, and others value 0. In this way, all the algorithms            lenges,’’ Sensors, vol. 19, no. 6, p. 1423, Mar. 2019.
+designed for off-line systems can be easily applied to on-line       [5] S. Sakhavi, C. Guan, and S. Yan, ‘‘Learning temporal information for
+systems, which will be a direction of our future researches.             brain–computer interface using convolutional neural networks,’’ IEEE
+                                                                         Trans. Neural Netw. Learn. Syst., vol. 29, no. 11, pp. 5619–5629,
+                                                                         Nov. 2018.
+VI. CONCLUSION                                                       [6] R. T. Schirrmeister, J. T. Springenberg, L. D. J. Fiederer, M. Glasstetter,
+In this work, we propose a neural network model TSGL-                    K. Eggensperger, M. Tangermann, F. Hutter, W. Burgard, and T. Ball,
+                                                                         ‘‘Deep learning with convolutional neural networks for EEG decoding
+EEGNet, which has the good performance on the MI EEG                     and visualization,’’ Hum. Brain Mapping, vol. 38, no. 11, pp. 5391–5420,
+and the well interpretability for itself. The TSGL-EEGNet                Nov. 2017.
+is improved based on a popular deep learning model                   [7] X. Zhao, H. Zhang, G. Zhu, F. You, S. Kuang, and L. Sun, ‘‘A multi-
+                                                                         branch 3D convolutional neural network for EEG-based motor imagery
+EEGNet, and uses the traditional machine learning algorithm              classification,’’ IEEE Trans. Neural Syst. Rehabil. Eng., vol. 27, no. 10,
+for optimization. The proposed model in our work based on                pp. 2164–2177, Oct. 2019.
+the EEGNet is consistent with the principle of CSP algorithm,        [8] K.-W. Ha and J.-W. Jeong, ‘‘Motor imagery EEG classification using
+which maximizes the variance of class features through learn-            capsule networks,’’ Sensors, vol. 19, no. 13, p. 2854, Jun. 2019.
+                                                                     [9] B. Graimann, B. Allison, and G. Pfurtscheller, ‘‘Brain–computer inter-
+ing a spatial filter. Based on the public datasets, the proposed         faces: A gentle introduction,’’ in Brain-Computer Interfaces. Berlin,
+method reaches the 81.34% average classification accuracy                Germany: Springer, 2009, pp. 1–27.
+
+VOLUME 9, 2021                                                                                                                                 25129
+                                                                                                    X. Deng et al.: Advanced TSGL-EEGNet for MI EEG-Based BCIs
+
+
+
+
+[10] L. F. Nicolas-Alonso and J. Gomez-Gil, ‘‘Brain computer interfaces, a          [31] S. Taran, V. Bajaj, D. Sharma, S. Siuly, and A. Sengur, ‘‘Features based on
+     review,’’ Sensors, vol. 12, no. 2, pp. 1211–1279, 2012.                             analytic IMF for classifying motor imagery EEG signals in BCI applica-
+[11] G. Pfurtscheller and A. Aranibar, ‘‘Event-related cortical desynchroniza-           tions,’’ Measurement, vol. 116, pp. 68–76, Feb. 2018.
+     tion detected by power measurements of scalp EEG,’’ Electroencephalogr.        [32] J. Feng, E. Yin, J. Jin, R. Saab, I. Daly, X. Wang, D. Hu, and A. Cichocki,
+     Clin. Neurophysiol., vol. 42, no. 6, pp. 817–826, Jun. 1977.                        ‘‘Towards correlation-based time window selection method for motor
+[12] G. Pfurtscheller, C. Brunner, A. Schlögl, and F. H. L. da Silva, ‘‘Mu rhythm        imagery BCIs,’’ Neural Netw., vol. 102, pp. 87–95, Jun. 2018.
+     (de)synchronization and EEG single-trial classification of different motor
+     imagery tasks,’’ NeuroImage, vol. 31, no. 1, pp. 153–159, May 2006.
+[13] X. Deng, D. Li, J. Mi, F. Gao, Q. Chen, J. Wang, and R. Liu, ‘‘Motor                                      XIN DENG (Member, IEEE) received the bache-
+     imagery ECoG signal classification using sparse representation with elastic                               lor’s degree from the Department of Computer Sci-
+     net constraint,’’ in Proc. IEEE 7th Data Driven Control Learn. Syst. Conf.                                ence and Technology, Jilin University, Changchun,
+     (DDCLS), May 2018, pp. 44–49.                                                                             China, in 2004, the master’s degree from the
+[14] G. Rodríguez-Bermúdez and P. J. García-Laencina, ‘‘Automatic and adap-                                    Department of Computer Science, Chongqing
+     tive classification of electroencephalographic signals for brain computer                                 University, Chongqing, China, in 2007, and the
+     interfaces,’’ J. Med. Syst., vol. 36, no. S1, pp. 51–63, Nov. 2012.                                       Ph.D. degree in computer engineering from the
+[15] A. Schlögl, F. Lee, H. Bischof, and G. Pfurtscheller, ‘‘Characterization                                  National University of Singapore, Singapore,
+     of four-class motor imagery EEG data for the BCI-competition 2005,’’                                      in 2013. He is currently an Associate Professor
+     J. Neural Eng., vol. 2, no. 4, pp. L14–L22, Dec. 2005.                                                    with the College of Computer Science and Tech-
+[16] J. Zhou, M. Meng, Y. Gao, Y. Ma, and Q. Zhang, ‘‘Classification of motor       nology, Chongqing University of Posts and Telecommunications, China.
+     imagery eeg using wavelet envelope analysis and LSTM networks,’’ in            His research interests include brain–computer interface, electrophysiological
+     Proc. Chin. Control Decis. Conf. (CCDC), Jun. 2018, pp. 5600–5605.             signal processing, data engineering, and machine learning.
+[17] Y. Hashimoto and J. Ushiba, ‘‘EEG-based classification of imaginary
+     left and right foot movements using beta rebound,’’ Clin. Neurophysiol.,
+     vol. 124, no. 11, pp. 2153–2160, Nov. 2013.                                                               BOXIAN ZHANG received the B.Sc. degree
+[18] K. K. Ang, Z. Y. Chin, H. Zhang, and C. Guan, ‘‘Filter bank common                                        in mathematics, in 2018. He is currently pur-
+     spatial pattern (FBCSP) in brain–computer interface,’’ in Proc. IEEE Int.                                 suing the master’s degree with the Chongqing
+     Joint Conf. Neural Netw., IEEE World Congr. Comput. Intell., Jun. 2008,                                   University of Posts and Telecommunications,
+     pp. 2390–2397.                                                                                            Chongqing, China. His research interests include
+[19] Y. Zhang, C. S. Nam, G. Zhou, J. Jin, X. Wang, and A. Cichocki, ‘‘Tem-                                    brain–computer interface, brain science, machine
+     porally constrained sparse group spatial patterns for motor imagery BCI,’’                                learning, and artificial intelligence.
+     IEEE Trans. Cybern., vol. 49, no. 9, pp. 3322–3332, Sep. 2019.
+[20] Y. Jiao, Y. Zhang, X. Chen, E. Yin, J. Jin, X. Wang, and A. Cichocki,
+     ‘‘Sparse group representation model for motor imagery EEG classifica-
+     tion,’’ IEEE J. Biomed. Health Informat., vol. 23, no. 2, pp. 631–641,
+     Mar. 2019.                                                                                                NIAN YU received the Ph.D. degree in geophysics
+[21] S. Scardapane, D. Comminiello, A. Hussain, and A. Uncini, ‘‘Group sparse                                  from the School of Geophysics, Chengdu Univer-
+     regularization for deep neural networks,’’ Neurocomputing, vol. 241,                                      sity of Technology, in 2012. He currently works as
+     pp. 81–89, Jun. 2017.                                                                                     an Associate Professor with the School of Electri-
+[22] C. Brunner, R. Leeb, G. Müller-Putz, A. Schlögl, and                                                      cal Engineering, Chongqing University. His main
+     G. Pfurtscheller, ‘‘BCI competition 2008–graz data set A,’’ Inst.                                         research interests include electrical signal process-
+     Knowl. Discovery, Lab. Brain-Comput. Interfaces, Graz Univ. Technol.,                                     ing, electromagnetic field simulation and applica-
+     Graz, Austria, 2008, pp. 136–142, vol. 16. [Online]. Available:                                           tions, and artificial intelligence.
+     http://www.bbci.de/competition/iv/desc_2a.pdf
+[23] K. K. Ang, Z. Y. Chin, C. Wang, C. Guan, and H. Zhang, ‘‘Filter bank
+     common spatial pattern algorithm on BCI competition IV datasets 2a and
+     2b,’’ Frontiers Neurosci., vol. 6, p. 39, Mar. 2012.                                                    KE LIU received the B.S. degree in automatic
+[24] J. Jin, Y. Miao, I. Daly, C. Zuo, D. Hu, and A. Cichocki, ‘‘Correlation-                                control from Southwest University, Chongqing,
+     based channel selection and regularized feature optimization for MI-based                               China, in 2011, and the Ph.D. degree in pattern
+     BCI,’’ Neural Netw., vol. 118, pp. 262–270, Oct. 2019.                                                  recognition and intelligent systems from the South
+[25] J. Jin, R. Xiao, I. Daly, Y. Miao, X. Wang, and A. Cichocki, ‘‘Internal fea-                            China University of Technology, Guangzhou,
+     ture selection method of CSP based on L1-norm and Dempster–Shafer the-
+                                                                                                             China, in 2016. He is currently an Associate
+     ory,’’ IEEE Trans. Neural Netw. Learn. Syst., early access, Aug. 24, 2020,
+                                                                                                             Professor with the College of Computer Sci-
+     doi: 10.1109/TNNLS.2020.3015505.
+                                                                                                             ence and Technology, Chongqing University of
+[26] P. Gaur, R. B. Pachori, H. Wang, and G. Prasad, ‘‘A multi-class EEG-
+                                                                                                             Posts and Telecommunications, Chongqing. His
+     based BCI classification using multivariate empirical mode decomposition
+     based filtering and Riemannian geometry,’’ Expert Syst. Appl., vol. 95,                                 research interests include pattern recognition and
+     pp. 201–211, Apr. 2018.                                                        Bayesian inference and their applications in EEG data analysis.
+[27] X. Xie, Z. L. Yu, H. Lu, Z. Gu, and Y. Li, ‘‘Motor imagery classifi-
+     cation based on bilinear sub-manifold learning of symmetric positive-
+                                                                                                             KAIWEI SUN received the bachelor’s degree
+     definite matrices,’’ IEEE Trans. Neural Syst. Rehabil. Eng., vol. 25, no. 6,
+     pp. 504–516, Jun. 2017.                                                                                 in information security and the master’s degree
+[28] H. Bashashati, R. K. Ward, and A. Bashashati, ‘‘User-customized brain
+                                                                                                             in computer technology from the Chongqing
+     computer interfaces using Bayesian optimization,’’ J. Neural Eng., vol. 13,                             University of Posts and Telecommunications,
+     no. 2, Apr. 2016, Art. no. 026001.                                                                      China, in 2010 and 2013, respectively, and the
+[29] Y. Yang, S. Chevallier, J. Wiart, and I. Bloch, ‘‘Subject-specific time-                                Ph.D. degree in information and communication
+     frequency selection for multi-class motor imagery-based BCIs using few                                  engineering from Inha University, South Korea,
+     Laplacian EEG channels,’’ Biomed. Signal Process. Control, vol. 38,                                     in 2017. He is currently an Associate Professor
+     pp. 302–311, Sep. 2017.                                                                                 with the School of Computer Science and Technol-
+[30] R. R. Selvaraju, M. Cogswell, A. Das, R. Vedantam, D. Parikh, and                                       ogy, Chongqing University of Posts and Telecom-
+     D. Batra, ‘‘Grad-cam: Visual explanations from deep networks via               munications. His research interests include machine learning, big data
+     gradient-based localization,’’ Int. J. Comput. Vis., vol. 128, no. 2,          analysis, computer vision, and nature language processing.
+     pp. 336–359, Oct. 2019.
+
+25130                                                                                                                                               VOLUME 9, 2021
+

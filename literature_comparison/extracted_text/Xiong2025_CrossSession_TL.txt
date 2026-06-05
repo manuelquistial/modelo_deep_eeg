@@ -1,0 +1,394 @@
+                                                                                                                                                                                    2025 IEEE 5th International Conference on Power, Electronics and Computer Applications (ICPECA)
+
+
+
+
+                                                                                                                                                                                        Cross-Session EEG Motor Imagery Classification
+                                                                                                                                                                                              Method Based on Transfer Learning
+                                                                                                                                                                                    Chaolin Xiong1,2,a, Hualiang Li1,2, Yalong Wang1,2 , Ziyue Lin1,2, Wenhan Yang1,2, Shengping Fan1,2, Yifan Wang1,2
+                                                                                                                                                                                            1
+                                                                                                                                                                                             Electric Power Research Institute of Guangdong Power Grid Co., Ltd., Guangzhou, Guangdong, 510080, China
+                                                                                                                                                                                                             2
+                                                                                                                                                                                                               Guangdong Power Grid Co., Ltd., Guangzhou, Guangdong, 510080, China
+                                                                                                                                                                                                                                       a
+                                                                                                                                                                                                                                         chaolinxiong@qq.com
+2025 IEEE 5th International Conference on Power, Electronics and Computer Applications (ICPECA) | 979-8-3315-3369-4/25/$31.00 ©2025 IEEE | DOI: 10.1109/ICPECA63937.2025.10928860
+
+
+
+
+                                                                                                                                                                                        Abstract—Motor imagery (MI) electroencephalogram                              electrical signals. The principle behind the generation of
+                                                                                                                                                                                    (EEG) signals exhibit cross-session variability, which hinders                    brain electrical signals comes from the interaction between
+                                                                                                                                                                                    traditional EEG classification models from achieving                              resting potentials and action potentials, which are caused by
+                                                                                                                                                                                    satisfactory performance in cross-session EEG data                                the imbalance of positive and negative ions during
+                                                                                                                                                                                    classification.    Therefore,      further  adjustments      and                  communication between neurons[4]. EEG measurements are
+                                                                                                                                                                                    optimizations are needed. To resolve this problem, the research                   acquired from the scalp in the form of a two-dimensional
+                                                                                                                                                                                    develops a transfer learning-based approach for cross-session                     real-valued matrix, encompassing both temporal and spatial
+                                                                                                                                                                                    motor imagery EEG classification. To comprehensively analyze                      dimensions. This technique offers significant benefits,
+                                                                                                                                                                                    EEG data, this study introduces an attention-optimized
+                                                                                                                                                                                                                                                                      including operational simplicity, cost-effectiveness, safety,
+                                                                                                                                                                                    separable CNN framework for multi-domain feature
+                                                                                                                                                                                    extraction (spectral, spatial, and temporal).In parallel,
+                                                                                                                                                                                                                                                                      portability, and excellent temporal resolution. Consequently,
+                                                                                                                                                                                    supervised learning is applied to reduce the classification error                 it has gained widespread adoption as a reliable approach for
+                                                                                                                                                                                    of source domain data. Meanwhile, transfer learning is                            capturing brain activity across multiple technical and
+                                                                                                                                                                                    leveraged to enhance the alignment of feature representations                     industrial domains. However, EEG signals have a low
+                                                                                                                                                                                    between source and target domains, enabling the training of a                     signal-to-noise ratio, and commonly used scalp electrode
+                                                                                                                                                                                    neural network capable of effectively processing cross-session                    monitoring methods are subject to interference from various
+                                                                                                                                                                                    EEG datasets. Finally, the proposed algorithm is compared                         factors, such as electrooculographic (EOG) signals,
+                                                                                                                                                                                    with several selected advanced algorithms and evaluated on                        electromyographic (EMG) signals, and electrocardiographic
+                                                                                                                                                                                    the publicly available 2008 BCI Competition IV 2a dataset.                        (ECG) noise[5].
+                                                                                                                                                                                    The results show that without any manual feature extraction,
+                                                                                                                                                                                    the proposed cross-session EEG motor imagery classification                           Motor imagery (MI) is one of the most important
+                                                                                                                                                                                    method based on transfer learning achieves an average                             experimental paradigms in Brain-Computer Interface (BCI)
+                                                                                                                                                                                    accuracy of 73.1% and a Kappa value of 64.8% for the                              research[6]. Motor imagery involves mentally simulating the
+                                                                                                                                                                                    four-class classification dataset.                                                movement of a body part without physically executing the
+                                                                                                                                                                                                                                                                      action. EEG-based motor imagery (MI-EEG) technology
+                                                                                                                                                                                        Keywords—EEG signals, motor imagery, brain-computer                           has been widely adopted in multiple medical applications,
+                                                                                                                                                                                    interface, convolutional neural network, attention mechanism,                     such as post-stroke rehabilitation, wheelchair navigation,
+                                                                                                                                                                                    transfer learning                                                                 prosthetic device control, exoskeleton support, cursor
+                                                                                                                                                                                                                                                                      movement, spelling interfaces, and transforming thoughts
+                                                                                                                                                                                                              I. INTRODUCTION                                         into written text. At the same time, MI-EEG signals are also
+                                                                                                                                                                                        Brain-Computer Interface (BCI) was first proposed by                          widely used in non-medical fields, including vehicle control,
+                                                                                                                                                                                    Vidal[1] in 1973. The system analyzes neural signals and                          drone operation, environmental regulation, smart home
+                                                                                                                                                                                    translates them into actionable commands to operate                               systems, security monitoring, video games, and virtual
+                                                                                                                                                                                    external devices. This technology has proven transformative                       reality[7]. Therefore, the application potential of MI-EEG
+                                                                                                                                                                                    in healthcare, particularly in supporting the recovery of                         signals in both medical and non-medical industries is vast.
+                                                                                                                                                                                    individuals with disabilities and contributing to the                                 For BCI systems, the rapid processing, precise
+                                                                                                                                                                                    management of neurological conditions, including stroke                           categorization, and efficient decoding of MI-EEG signals
+                                                                                                                                                                                    and various psychological disorders. With the continuous                          are critical for their practical deployment and functionality.
+                                                                                                                                                                                    advancement of brain science and the modernization of                             Nevertheless, real-world scenarios reveal notable challenges
+                                                                                                                                                                                    intelligent devices, the study of controlling external devices                    in decoding accuracy and generalization capacity of
+                                                                                                                                                                                    through the analysis of human brain physiological                                 MI-EEG data, which restrict their broader application.
+                                                                                                                                                                                    characteristics—specifically EEG signals—has gradually                            Consequently, the classification of MI-EEG signals has
+                                                                                                                                                                                    become a research hotspot[2].                                                     become a prominent research focus, attracting significant
+                                                                                                                                                                                        Brain signals can be recorded using multiple methods,                         attention from the academic and scientific community.
+                                                                                                                                                                                    including           electroencephalography        (EEG),                              Convolutional Neural Networks (CNN) are commonly
+                                                                                                                                                                                    magnetoencephalography (MEG), functional magnetic                                 used in recognition tasks, as they can automatically learn
+                                                                                                                                                                                    resonance imaging (fMRI), near-infrared spectroscopy                              features from images, videos, or sensor data for
+                                                                                                                                                                                    (NIRS), and electrocorticography (ECoG). Among these,                             classification or regression tasks[8]. CNNs have also found
+                                                                                                                                                                                    EEG represents a prevalent, non-invasive approach capable                         wide application in the classification of MI-EEG signals.
+                                                                                                                                                                                    of detecting the brain's electrical activity.                                     CNN reduces the need for extensive data preprocessing and
+                                                                                                                                                                                       EEG signals were first detected by Berger[3], who                              eliminates the manual feature selection process. One of the
+                                                                                                                                                                                    confirmed that the brain transmits information through                            earliest successful CNN models was DeepConvNet,
+
+
+
+                                                                                                                                                                                    979-8-3315-3369-4/25/$31.00 ©2025 IEEE                                      342                                        January 17-19, 2025 Shenyang, China
+                                                                                                                                                                                          Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+proposed by Schirrmeister R T et al. The design of                                   To enhance the adaptability of EEGNet to cross-session
+DeepConvNet[9] was inspired by the frequency band                                motor imagery (MI) signals, this paper proposes a transfer
+common spatial patterns (FBCSP[10]).                                             learning-based     framework     for    cross-session    MI
+                                                                                 classification. The method primarily consists of the
+    Building upon ConvNet, Lawhern V J et al. introduced                         following steps: (1) data preprocessing to obtain EEG data
+EEGNet, a more efficient and flexible architecture. EEGNet                       for the source and target domains; (2) extracting frequency,
+represents a streamlined deep convolutional neural network                       spatial, and temporal information using an attention-based
+tailored for EEG signal analysis and categorization within                       separable convolutional neural network; (3) using
+brain-computer interface (BCI) systems. The proposed                             supervised learning to minimize the classification loss for
+model utilizes convolutional layers to capture temporal,                         the source domain samples; (4) applying transfer learning to
+spatial, and spectral characteristics from EEG signals,                          maximize the similarity between the source and target
+incorporating depthwise separable convolutions to minimize                       domain features in order to train a neural network suitable
+computational overhead without compromising essential                            for cross-session EEG signals; (5) classifying the target
+data. The simple and efficient structure of EEGNet makes it                      domain using the trained model and comparing its MI
+well-suited for processing small-scale datasets and performs                     classification performance with several selected advanced
+exceptionally well in resource-constrained environments.                         algorithms on publicly available datasets. This method also
+Consequently, EEGNet has been extensively adopted in BCI                         demonstrates the widespread existence of the cross-session
+applications, demonstrating an optimal trade-off between                         issue in motor brain-computer interfaces (BCIs).
+classification accuracy and computational performance.
+    Due to the excellent performance of EEGNet,                                                       II. EXPERIMENTAL DATA
+researchers have developed several variants based on                                 The experimental data utilized in this research is derived
+EEGNet. For example, EEG-TCNet, proposed by                                      from the BCI Competition IV–Graz dataset A, comprising
+Ingolfsson T M et al., adds Temporal Convolutional                               EEG recordings from nine participants engaged in motor
+Networks (TCNs) to EEGNet. TCNs enable an exponential                            imagery tasks. This dataset follows a cue-driven
+expansion of the receptive field while maintaining a linear                      brain-computer       interface  (BCI)      framework       and
+growth in both the number of parameters and                                      encompasses four distinct motor imagery categories: left
+Multiply-Accumulate (MAC) operations. In comparison,                             hand (class 1), right hand (class 2), both feet (class 3), and
+conventional CNNs exhibit only a linear increase in                              tongue (class 4). Each participant performed two
+receptive field size. Additionally, unlike sequential models                     experimental trials on separate dates, with identical
+like Recurrent Neural Networks (RNNs), TCNs are                                  protocols and procedures employed across both sessions.
+inherently immune to issues such as gradient vanishing or                        Each experiment consists of 6 sub-experiments, with short
+exploding, especially when processing extended input                             breaks between each group. Each sub-experiment records 48
+sequences during training.                                                       segments of EEG data (12 trials for each of the 4 possible
+    Similarly, Musallam Y K et al.'s TCN_Fusion also                             categories, 4×12=48 segments). Therefore, each experiment
+employs a method similar to EEG-TCNet. In contrast,                              generates a total of 288 segments of data (6 sub-experiments,
+Altaheri H et al. developed EEG-ATCNet, which combines                           each with 48 trials, 6×48=288 segments). In total, 576
+Temporal Convolutional Networks (TCNs) with multi-head                           segments of data were collected for each subject over the
+self-attention mechanisms and a convolution-based sliding                        two experiments.
+window approach to significantly improve MI classification                           Before initiating the experiment, a 5-minute baseline
+accuracy. EEG-ATCNet improves efficiency through                                 recording was performed to assess the potential impact of
+parallelization, using convolutions to implement the sliding                     electrooculographic (EOG) artifacts. This recording was
+window and reduce computation. Additionally, it helps                            divided into three distinct phases: (1) a 2-minute interval
+expand the MI data and significantly increases accuracy.                         with the eyes open, during which participants were
+The self-attention framework empowers the model to                               instructed to fixate on a central cross displayed on the
+selectively prioritize the most salient MI features within the                   screen; (2) a 1-minute interval with the eyes closed; and (3)
+EEG dataset. Additionally, multi-head attention facilitates                      a 1-minute period of structured eye movement exercises.
+the simultaneous processing of multiple spatial locations,
+thereby producing a variety of attention-based feature maps.                         The motor imagery (MI) experimental protocol unfolds
+                                                                                 as follows: Participants are seated in front of a display
+    Li Z et al. proposed the UDDA and SDDA models,                               screen. At the initiation of each trial (t = 0s), a fixation cross
+which introduced the Dynamic Domain Adaptation (DDA)                             is presented on the screen, accompanied by a short auditory
+algorithm for MI-EEG signal classification. This approach                        alert. At t = 2s, a directional arrow appears, pointing either
+minimizes global and local differences while addressing the                      left, right, down, or up, correlating to the four motor
+local subdomain discrepancies. To resolve the challenge of                       imagery conditions: imagining left hand, right hand, foot, or
+limited labeled data in the target domain, a dynamic training                    tongue movements. The arrow cue persists for 1.25 seconds,
+approach was proposed. Initially, this method focuses on                         during which participants are instructed to commence the
+optimizing global domain discrepancies during the early                          designated motor imagery task, with no feedback provided.
+phases of training, subsequently shifting emphasis toward                        The subject is required to continue imagining until t = 6s,
+reducing local subdomain variations. These findings                              when the fixation cross disappears. A short break follows
+indicate that while existing research has delivered                              the trial.
+satisfactory outcomes in Motor Imagery (MI)-EEG signal
+classification, cross-session motor imagery classification                           To maintain data accuracy and comprehensiveness, this
+accuracy still presents opportunities for further                                research utilizes a time window spanning from 0.5 seconds
+enhancement.                                                                     prior to the cue onset until the conclusion of the motor
+                                                                                 imagery task (t = 1.5s to t = 6s) as the representative sample
+
+
+
+                                                                           343
+     Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+for each MI-EEG segment. The feature extraction capability                       decomposition of the input dataset. The procedure for a
+of deep learning models has been proven in many studies,                         single motor imagery (MI) trial is shown in Figure 1.
+and therefore, this model does not require filtering or
+
+
+
+
+                                              Figure 1. Temporal Diagram of a Single-Trial Motor Imagery
+
+
+           III. MODEL AND EVALUATION METRICS                                     Elu activation function. It is then passed through a pooling
+                                                                                 layer to reduce its dimensionality, decreasing the sampling
+    The proposed cross-time EEG motor imagery                                    rate to 1/8 of the original value. Finally, dropout is applied
+classification framework, leveraging transfer learning, is                       to prevent overfitting.
+depicted in the structural diagram of Figure 2. The
+workflow is outlined as follows:                                                     5) A multi-head self-attention mechanism is applied to
+                                                                                 the output feature map to highlight the most important
+    First, frequency, spatial, and temporal features are                         feature information.
+extracted from both the source and target domain datasets
+using a separable convolutional neural network enhanced                              6) The target domain classification is performed using a
+with attention mechanisms. This neural architecture                              classification layer that integrates a linear layer and a
+comprises six distinct modules.                                                  SoftMax classifier, leveraging the pre-trained model.
+                                                                                 Feature maps derived from the target domain are input into
+    1) A 2D convolution with a kernel size of (1,                                this layer to generate the final classification outputs.
+kernelLength) is applied to the raw EEG data to extract
+frequency features. Batch normalization (BatchNorm2d) is                             7) The training process employs a hybrid approach
+then used for batch normalization. The kernelLength is set                       combining supervised learning and transfer learning. In
+to half of the dataset's sampling frequency to capture                           supervised learning, the predicted outputs from the source
+frequency information of 2Hz and above.                                          domain, along with its corresponding data labels, are
+                                                                                 utilized to minimize the classification loss associated with
+  2) An attention mechanism is employed to highlight the                         the source domain samples. The cross-entropy loss function
+most important channel information.                                              (Cross-entropy Loss Function) is used as the classification
+    3) A depthwise convolution with a kernel size of                             loss, and the classification loss function is shown in
+(channels, 1) is applied to the output feature map to extract                    equation (1):
+spatial features, where "channels" is set equal to the number                                                1              1
+of channels, allowing all channel information to be captured.                                  clf_loss = ∑𝑖 𝐿𝑖 = − ∑𝑖 ∑𝑀
+                                                                                                                        𝑐=1 𝑦𝑖𝑐 log(𝑝𝑖𝑐 ) (1)
+                                                                                                            𝑁               𝑁
+Batch normalization is applied to the output feature map,
+followed by an Elu nonlinear activation function. The                                N represents the number of classification categories;
+feature map is then passed through a pooling layer to reduce                     𝑦𝑖𝑐 is an indicator function (0 or 1), which takes the value 1
+its dimensionality, bringing the sampling rate down to 1/4 of                    if the true class of sample i is equal to c, and 0 otherwise;
+its original value. Finally, dropout is applied to prevent                       𝑝𝑖𝑐 denotes the predicted probability that sample i belongs
+overfitting.                                                                     to category c.
+    4) Separable convolution is applied to the feature map                           Within the adaptive layer, a loss function is applied to
+output from the previous layer. The separable convolution                        quantify the discrepancy between the source and target
+consists of a 2D convolution with a kernel size of (1,                           domain features, with the aim of optimizing their alignment.
+kernelLength2) and a pointwise convolution with a kernel                         The Earth-Mover Distance (EMD) is used as the transfer
+size of (1, 1). The kernelLength2 is set to half of the input                    loss. The formula for the transfer loss function is shown in
+feature's sampling frequency. The 2D convolutional layer is                      equation (2):
+responsible for capturing temporal characteristics within
+each feature map, whereas the pointwise convolution is                                   EMD_loss = inf𝛾=∏(𝑝,𝑞) E(𝑥,𝑦)~𝛾 [||𝑥 − 𝑦||]                    (2)
+employed to learn a kernel that independently summarizes
+individual feature maps and subsequently integrates their
+outputs in an optimal manner. This approach effectively                              ∏(𝑝, 𝑞) represents the set of all possible joint
+disentangles the interdependencies both within the internal                      distributions that combine distributions p and q. For each
+features of each feature map and across distinct feature                         possible joint distribution 𝛾, a sample pair (𝑥, 𝑦) can be
+maps.      Post-processing    involves     applying     batch                    drawn from (𝑥, 𝑦)~𝛾, and the distance ||𝑥 − 𝑦|| between
+normalization to the resulting feature map, succeeded by an                      this pair of samples is calculated. E𝑥,𝑦~𝛾 [||𝑥 − 𝑦||] denotes
+
+
+
+                                                                           344
+     Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+the expected value of the sample pair distances under the                             C lf_los s is the classification loss, EMD_loss is the
+joint distribution 𝛾.                                                             transfer loss, and τ is the transfer rate. The value of τ is
+                                                                                  adjusted to control the proportion of the transfer loss in the
+    The transfer loss and classification loss together
+                                                                                  total loss, in order to train a neural network suitable for
+constitute the total loss function of the entire network, with
+                                                                                  cross-time period EEG data. Compared to EEGNet, the
+the formula for the total loss function given in equation (3):
+                                                                                  model proposed in this paper incorporates attention
+                                                                                  mechanisms and transfer learning to improve the model's
+                      Loss = clf_loss + τ ∗ EMD_loss                  (3)         accuracy and robustness.
+
+
+
+
+                                                           Figure 2. Model Structure Diagram
+
+
+A. Attention Mechanism                                                               H is the input features, w is a trainable matrix, M =
+                                                                                  tanh(H).
+    The attention mechanism is a deep learning technique
+used to enhance the performance of neural networks when                               Next, a multi-head self-attention mechanism is applied
+processing sequential data. It is inspired by the attention                       to the feature map output from separable convolution to
+mechanisms observed in biology, which allow organisms to                          highlight the most important feature information. The
+flexibly allocate their limited computational resources. At its                   multi-head self-attention formula is given in equation (5):
+core, the mechanism assigns varying weights to prioritize
+critical information while disregarding irrelevant data,                                                                                   QYT
+                                                                                                         SelfAttention = Softmax(                )V     (5)
+thereby enhancing both the efficiency and accuracy of the                                                                                  √dk
+model. By computing importance scores for each position
+within the input sequence and dynamically modulating their                            The query vector Q, key vector K, and value vector V
+influence, the attention mechanism allows the model to                            are obtained by passing the input vector X through a fully
+better capture both global and local dependencies. In this                        connected layer, and √dk denotes the feature dimension.
+study, the integration of the attention mechanism,
+particularly focusing on salient spatial and temporal features                    B. Transfer Learning
+in EEG data, has led to a substantial improvement in                                  Transfer learning facilitates the application of
+classification performance.                                                       knowledge acquired from one domain to another related yet
+    This paper applies two types of attention mechanisms.                         distinct domain, enabling efficient extraction of features and
+First, an attention mechanism is applied to the feature map                       accurate classification tasks. Drawing parallels from
+output after 2D convolution to highlight the most important                       analogical learning in humans, the concept is rooted in the
+channel information. The attention mechanism formula is                           ability of individuals to utilize prior knowledge and
+given in equation (4):                                                            experiences to expedite the mastery of new tasks. The
+                                                                                  foundational principle involves leveraging a model
+                                                                                  pre-trained on a comprehensive dataset and adapting its
+                   Attention = tanh[softmax(wM) ∙ H] (4)
+                                                                                  learned representations to a smaller target dataset through
+                                                                                  fine-tuning, thereby achieving robust performance. This
+
+
+
+                                                                            345
+     Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+methodology not only accelerates training but also enhances                      typically faced by traditional deep learning methods. EEG
+the model's capacity for generalization in scenarios with                        data, due to its complex preprocessing and analysis steps,
+limited sample data.                                                             often suffers from limited sample sizes. In such cases,
+                                                                                 transfer learning alleviates the challenge of obtaining
+    Transfer learning is particularly helpful in scenarios                       labeled EEG data in small sample scenarios. The model can
+where data is scarce or labeling is costly, addressing                           be fine-tuned with unlabeled data under a specific task,
+significant issues such as long training times, poor                             achieving good recognition performance. The transfer
+generalization, and difficulty in cross-domain applications                      learning training diagram in this paper is shown in Figure 3.
+
+
+
+
+                                                      Figure 3. Transfer Learning Training Diagram
+
+
+C. Evaluation Index                                                              concordance between multiple observers. The Kappa
+                                                                                 coefficient ranges from -1 to 1, with higher values
+   The evaluation metrics used in this paper include                             signifying greater consistency. The formula for Kappa is
+Accuracy, Kappa, and Confusion Matrix.                                           given in equation (6):
+    Accuracy represents the proportion of correctly
+                                                                                                                                           𝑃 −𝑃e
+classified instances relative to the total number of instances,                                                                Kappa = o                (6)
+                                                                                                                                            1−𝑃e
+offering a straightforward metric to assess model
+performance.
+                                                                                     𝑃o is the observed agreement ratio, which represents the
+   Kappa is a statistical measure employed to quantify the                       proportion of instances where the model's predictions match
+agreement or consistency of a classifier's predictions or the                    the true labels. 𝑃𝑒 is the expected agreement ratio, which
+
+
+
+                                                                           346
+     Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+represents the probability of random agreement between the                       and attention mechanism improvements. The experimental
+predictions and true labels.                                                     results are shown in Table I.
+    The Confusion Matrix is a standard format used for                               As shown in Table I, the average accuracy of the
+accuracy evaluation, showcasing the model's classification                       traditional EEGNet model is 69.2%, with an average Kappa
+performance across different categories. The rows of the                         of 59.0%. The model with transfer learning improvements
+matrix typically represent the true classes, while the                           achieved an average accuracy of 71.5% and an average
+columns represent the predicted classes. The elements of the                     Kappa of 62.0%, with the highest accuracy reaching 84.4%.
+matrix reflect the correspondence between the true labels                        The model with the attention mechanism achieved an
+and the predicted labels. By calculating the classification                      average accuracy of 67.9% and an average Kappa of 57.2%,
+results for each category, the confusion matrix provides a                       with the highest accuracy reaching 87.8%. From the
+clear visualization of the ratio of correctly classified motor                   improvement results of these two methods, it is evident that
+MI-EEG signals for each class, as well as the rate at which                      the contribution of transfer learning is greater than that of
+they are misclassified into other categories.                                    the attention mechanism. Finally, by combining transfer
+                                                                                 learning and the attention mechanism, the average accuracy
+         IV. EXPERIMENTAL RESULTS AND ANALYSIS                                   reaches 73.7%, the average Kappa is 65.6%, with the
+   First, to better demonstrate the effectiveness of the                         highest accuracy reaching 92.0% and the highest Kappa
+proposed improvements, ablation experiments were                                 reaching 87.5%.
+conducted from two aspects: transfer learning improvements
+                                 TABLE I INFLUENCE OF DIFFERENT IMPROVEMENT METHODS ON EXPERIMENTAL RESULTS
+
+
+
+
+   Secondly, to more intuitively analyze the model's                             subject 3 was plotted, as shown in Figure 4.
+contribution to the four categories, the confusion matrix for
+
+
+
+
+                                                         Figure 4. Confusion matrix for subject 3
+
+
+
+
+                                                                           347
+     Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+    As shown in Figure 4, the accuracy for left hand, right                      EEG features generated during tongue imagery are less
+hand, both legs, and tongue are 81%, 99%, 88%, and 82%,                          distinct compared to other body parts.
+respectively. The highest error rate of 8% occurs between
+left hand and right hand imagery, which may be due to the                             Finally, the BCI-2a dataset was used as the experimental
+similar EEG features generated during left and right hand                        dataset, and the performance of the proposed method was
+motor imagery, leading to the highest misclassification rate                     compared with several commonly used advanced algorithms
+between these two categories. Additionally, the error rate for                   for motor imagery classification. The accuracy results are
+tongue imagery is the second highest, likely because the                         shown in Table II, and the Kappa results are shown in Table
+                                                                                 III.
+
+       TABLE II THE ACCURACY RESULTS OF THIS METHOD ARE COMPARED WITH THOSE OF SEVERAL ADVANCED ALGORITHMS IN BCI-2A DATA SET
+
+
+
+
+ TABLE III COMPARISON OF KAPPA RESULTS BETWEEN THIS METHOD AND                   publicly available BCI-2a dataset, demonstrating the
+         SEVERAL ADVANCED ALGORITHMS IN BCI-2A DATASET                           framework’s enhanced performance and generalizability in
+                                                                                 cross-time EEG motor imagery classification tasks.
+                                                                                                        ACKNOWLEDGMENTS
+                                                                                    This work is funded by the Science and Technology
+                                                                                 Projects of China Southern Power Grid Co., Ltd
+                                                                                 (GDKJXM20230787).
+                                                                                                              REFERENCES
+                                                                                 [1]  Vidal J J. Toward direct brain-computer communication[J]. Annual
+                                                                                      review of Biophysics and Bioengineering, 1973, 2(1): 157-180.
+                                                                                 [2] Zhang Xuebo, Yuan Tianwei, Zhang Liwen, et al. Development
+                                                                                      Trends of Neuroscience and Brain like Intelligence in 2022 [J]. Life
+                                                                                      Sciences, 2023, 35 (01): 9-17.
+                                                                                 [3] Berger H. Über das elektroenkephalogramm des menschen[J]. Archiv
+                                                                                      für psychiatrie und nervenkrankheiten, 1929, 87(1): 527-570.
+                                                                                 [4] Hu Liangzhu. Research on Motion Imagination Classification Method
+                                                                                      Based on Multi Domain Feature Fusion [D]. Beijing Jiaotong
+    As shown in Tables I and II, our method outperforms                               University, 2023.
+most advanced classification methods. However, compared                          [5] Li Qian. Research on Single Channel EEG Signal Processing and
+to some motor imagery EEG signal classification methods,                              Attention Recognition [D]. Nanjing University of Posts and
+such as the experimental results in references [5], [7], and                          Telecommunications, 2022.
+[8], further improvements are still needed.                                      [6] Lee B H, Jeong J H, Lee S W. SessionNet: Feature similarity-based
+                                                                                      weighted ensemble learning for motor imagery classification[J]. IEEE
+                                                                                      Access, 2020, 8: 134524-134535.
+                          V. CONCLUSION
+                                                                                 [7] Altaheri H, Muhammad G, Alsulaiman M, et al. Deep learning
+    To overcome the limitations of traditional EEG signal                             techniques for classification of electroencephalogram (EEG) motor
+classification models in achieving robust performance for                             imagery (MI) signals: A review[J]. Neural Computing and
+cross-temporal EEG data classification, this study proposes                           Applications, 2023, 35(20): 14681-14722.
+a novel EEG motor imagery classification framework based                         [8] Han Tianxi, Yang Ruiliang, Li Zhengzhi, et al. Attitude sensing and
+on transfer learning. The framework integrates attention                              neural network fusion method for electrical behavior detection [J].
+                                                                                      Guangdong Electric Power, 2024, 37 (08): 101-108.
+mechanisms and transfer learning to effectively extract
+                                                                                 [9] Schirrmeister R T, Springenberg J T, Fiederer L D J, et al. Deep
+spectral, spatial, and temporal features from EEG signals                             learning with convolutional neural networks for EEG decoding and
+while maximizing feature similarity between the source and                            visualization[J]. Human brain mapping, 2017, 38(11): 5391-5420.
+target domains, ensuring optimal knowledge transfer. To                          [10] Ang K K, Chin Z Y, Wang C, et al. Filter bank common spatial
+validate the effectiveness of the proposed approach,                                  pattern algorithm on BCI competition IV datasets 2a and 2b[J].
+comprehensive experiments were conducted using the                                    Frontiers in neuroscience, 2012, 6: 39.
+
+
+
+
+                                                                           348
+     Authorized licensed use limited to: Universidad de Antioquia. Downloaded on August 27,2025 at 14:20:14 UTC from IEEE Xplore. Restrictions apply.
+
