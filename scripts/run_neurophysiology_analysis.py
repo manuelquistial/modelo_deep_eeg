@@ -58,7 +58,9 @@ def main() -> None:
     subj = aggregate_subject_lateralization(trial_all)
     subj.to_csv(args.output_dir / "erd_ers_subject_level.csv", index=False)
 
-    pred_root = ROOT / "outputs_publishable" / "repeated_holdout" / dataset.replace("bnci2014_001", "bnci")
+    from physionet_mi.paths import publishable_runs_dir
+
+    pred_root = publishable_runs_dir(ROOT) / "repeated_holdout" / dataset.replace("bnci2014_001", "bnci")
     if pred_root.exists():
         subj_acc = collect_subject_level_metrics(pred_root)
         corr = correlate_lateralization_accuracy(trial_all, subj_acc)

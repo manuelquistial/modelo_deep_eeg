@@ -96,7 +96,13 @@ python scripts/prepare_data.py --config configs/preprocess_bnci_ea.yaml
 python scripts/prepare_data.py --config configs/preprocess_bnci_no_ea.yaml
 ```
 
-Genera caché en `data/processed/{dataset}_lr_{ea|no_ea}_*/holdout/`.
+Genera caché en `artifacts/cache/{dataset}_lr_{ea|no_ea}_*/holdout/` (ver `artifacts/README.md`).
+
+Tras clonar o si vienes de una versión antigua:
+
+```bash
+python scripts/setup_artifacts_layout.py
+```
 
 ### 2. Baselines clásicos
 

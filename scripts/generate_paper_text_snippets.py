@@ -10,16 +10,21 @@ from pathlib import Path
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
+
+from physionet_mi.paths import baseline_runs_dir, paper_tables_dir, publishable_runs_dir  # noqa: E402
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--results-root", type=Path, default=ROOT / "outputs_publishable")
-    p.add_argument("--output", type=Path, default=ROOT / "outputs_publishable" / "paper_tables" / "generated_result_sentences.md")
+    p.add_argument("--results-root", type=Path, default=None)
+    p.add_argument("--output", type=Path, default=None)
     args = p.parse_args()
+    results_root = args.results_root or publishable_runs_dir(ROOT)
+    output = args.output or (paper_tables_dir(ROOT) / "generated_result_sentences.md")
     lines = ["# Generated result sentences\n\n"]
 
-    summary_files = list(args.results_root.glob("**/repeated_holdout_summary.csv"))
+    summary_files = list(results_root.glob("**/repeated_holdout_summary.csv"))
     if not summary_files:
         lines.append("Insufficient evidence: run repeated hold-out first.\n")
     else:
@@ -43,7 +48,7 @@ def main() -> None:
                     f"accuracy ({best['balanced_accuracy_mean']:.3f} ± {best.get('balanced_accuracy_std', 0):.3f}).\n"
                 )
 
-    fixed = ROOT / "outputs" / "pipeline_comparison.csv"
+    fixed = baseline_runs_dir(ROOT) / "pipeline_comparison.csv"
     if fixed.exists():
         df = pd.read_csv(fixed)
         phys = df[(df["dataset"] == "physionet") & (df["use_ea"] == True)]  # noqa
@@ -63,7 +68,7 @@ def main() -> None:
                 f"({eegnet['balanced_accuracy'].iloc[0]:.3f}) under fixed hold-out.\n"
             )
 
-    subj = list(args.results_root.glob("**/subject_level_metrics.csv"))
+    subj = list(results_root.glob("**/subject_level_metrics.csv"))
     if subj:
         sdf = pd.read_csv(subj[0])
         if len(sdf):
@@ -90,9 +95,9 @@ def main() -> None:
     else:
         lines.append("Insufficient evidence: run neurophysiology analysis first.\n")
 
-    args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text("".join(lines), encoding="utf-8")
-    print(f"Wrote {args.output}")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("".join(lines), encoding="utf-8")
+    print(f"Wrote {output}")
 
 
 if __name__ == "__main__":

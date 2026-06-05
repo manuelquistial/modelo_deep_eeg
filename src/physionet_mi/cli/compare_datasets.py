@@ -72,7 +72,7 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument(
         "--output",
         type=str,
-        default="outputs/pipeline_comparison.csv",
+        default="artifacts/runs/baseline/pipeline_comparison.csv",
         help="CSV output path (JSON saved alongside with .json extension)",
     )
     args = parser.parse_args(argv)

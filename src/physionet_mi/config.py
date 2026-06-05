@@ -10,6 +10,7 @@ from typing import Any
 import yaml
 
 from physionet_mi.constants import BINARY_EVENTS, DEFAULT_FREQ_BANDS, SFREQ_PHYSIONET
+from physionet_mi.paths import default_config_paths
 
 
 def _deep_merge(base: dict, override: dict) -> dict:
@@ -48,13 +49,17 @@ def load_config(config_path: str | Path, project_root: Path | None = None) -> "E
     return ExperimentConfig.from_dict(raw, root=root)
 
 
+def _default_data_paths() -> dict[str, str]:
+    return default_config_paths()
+
+
 @dataclass
 class DataConfig:
     dataset: str = "physionet"  # physionet | bnci2014_001
-    mne_data_dir: str = "data/mne"
+    mne_data_dir: str = field(default_factory=lambda: _default_data_paths()["mne_data_dir"])
     subject_ids: list[int] | None = None
     binary_events: list[str] = field(default_factory=lambda: list(BINARY_EVENTS))
-    cache_dir: str = "data/processed"
+    cache_dir: str = field(default_factory=lambda: _default_data_paths()["cache_dir"])
     # BNCI2014_001 (MOABB) — same defaults as modelo_bilstm
     bnci_tmin: float = 0.0
     bnci_tmax: float = 4.0
@@ -152,7 +157,7 @@ class ExperimentConfig:
     baseline: BaselineConfig = field(default_factory=BaselineConfig)
     csp_svm: CspSvmConfig = field(default_factory=CspSvmConfig)
     eval: EvalConfig = field(default_factory=EvalConfig)
-    outputs_dir: str = "outputs"
+    outputs_dir: str = field(default_factory=lambda: _default_data_paths()["outputs_dir"])
     project_root: Path = field(default_factory=Path.cwd)
 
     @classmethod

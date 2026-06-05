@@ -53,9 +53,9 @@ def generate_reproducibility_report(results_root: Path, output_path: Path, proje
     cmds = [
         "python scripts/prepare_data.py --config configs/preprocess_ea.yaml",
         "python scripts/run_repeated_holdout.py --dataset physionet --seeds 0 1 2 3 4 5 6 7 8 9 --models fbcsp_lda csp_svm riemann_mdm riemann_ts_lr --ea both",
-        "python scripts/run_statistical_analysis.py --results outputs_publishable/repeated_holdout/physionet/repeated_holdout_results.csv --output-dir outputs_publishable/stats/physionet",
-        "python scripts/generate_paper_tables.py --results-root outputs_publishable --output-dir outputs_publishable/paper_tables",
-        "python scripts/generate_paper_figures.py --results-root outputs_publishable --output-dir outputs_publishable/paper_figures",
+        "python scripts/run_statistical_analysis.py --results artifacts/runs/publishable/repeated_holdout/physionet/repeated_holdout_results.csv --output-dir artifacts/runs/publishable/stats/physionet",
+        "python scripts/generate_paper_tables.py",
+        "python scripts/generate_paper_figures.py",
     ]
     for c in cmds:
         lines.append(f"```bash\n{c}\n```\n")

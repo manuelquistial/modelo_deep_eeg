@@ -7,4 +7,4 @@ experiment:
   models: [fbcsp_lda, csp_svm, riemann_mdm, riemann_ts_lr]
   ea: both
   skip_deep: true
-  output_dir: outputs_publishable/groupkfold/physionet
+  output_dir: artifacts/runs/publishable/groupkfold/physionet

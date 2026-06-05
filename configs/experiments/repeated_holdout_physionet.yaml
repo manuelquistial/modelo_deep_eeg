@@ -7,4 +7,4 @@ experiment:
   models: [fbcsp_lda, csp_svm, riemann_mdm, riemann_ts_lr, eegnet, eegme]
   ea: both
   test_size: 0.20
-  output_dir: outputs_publishable/repeated_holdout/physionet
+  output_dir: artifacts/runs/publishable/repeated_holdout/physionet

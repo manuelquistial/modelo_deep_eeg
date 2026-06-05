@@ -15,9 +15,24 @@ build/
 .DS_Store
 .cursor/
 
-# Raw data and fixed benchmark outputs (large, local)
+# Centralized generated artifacts (see artifacts/README.md)
+/artifacts/raw
+/artifacts/cache
+/artifacts/runs
+/artifacts/paper
+/artifacts/smoke
+/artifacts/reports/*
+!artifacts/reports/.gitkeep
+!artifacts/reports/implementation_plan.md
+/artifacts/failed_runs/
+/artifacts/smoke/
+
+# Legacy generated paths (pre-centralization)
 /data/
 /outputs/
+/outputs_publishable/
+/outputs_publishable_smoke_test/
+
 *.npy
 *.joblib
 
@@ -35,31 +50,8 @@ all_global_features_*.npy
 *.pth
 *.ckpt
 
-# Publishable experiment outputs (regenerated on Paperspace; do not commit)
-/outputs_publishable/repeated_holdout/
-/outputs_publishable/groupkfold/
-/outputs_publishable/riemannian/
-/outputs_publishable/stats/
-/outputs_publishable/subject_level/
-/outputs_publishable/neurophysiology/
-/outputs_publishable/ea_diagnostics/
-/outputs_publishable/paper_tables/
-/outputs_publishable/paper_figures/
-/outputs_publishable/failed_runs/
-/outputs_publishable_smoke_test/
-
-# Generated logs/reports (keep implementation_plan.md in repo)
-outputs_publishable/reports/paperspace_execution_log.txt
-outputs_publishable/reports/reproducibility_report.md
-outputs_publishable/reports/implementation_summary.md
-
 # Literature review artifacts (local Zotero extracts; privacy — do not commit)
 /literature_comparison/
 
 # Generated figures inside experiment runs
 **/confusion_matrix.png
-outputs_publishable/**/*.png
-outputs_publishable/**/*.pdf
-outputs_publishable/**/*.csv
-outputs_publishable/**/*.json
-outputs_publishable/**/*.tex

@@ -11,19 +11,22 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from physionet_mi.paper.figures import plot_repeated_holdout_accuracy, write_figure_captions
+from physionet_mi.paths import paper_figures_dir, publishable_runs_dir
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--results-root", type=Path, default=ROOT / "outputs_publishable")
-    p.add_argument("--output-dir", type=Path, default=ROOT / "outputs_publishable" / "paper_figures")
+    p.add_argument("--results-root", type=Path, default=None)
+    p.add_argument("--output-dir", type=Path, default=None)
     args = p.parse_args()
-    args.output_dir.mkdir(parents=True, exist_ok=True)
+    results_root = args.results_root or publishable_runs_dir(ROOT)
+    output_dir = args.output_dir or paper_figures_dir(ROOT)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-    for summary in args.results_root.glob("**/repeated_holdout_summary.csv"):
-        plot_repeated_holdout_accuracy(summary, args.output_dir)
-    write_figure_captions(args.output_dir)
-    print(f"Figures written to {args.output_dir}")
+    for summary in results_root.glob("**/repeated_holdout_summary.csv"):
+        plot_repeated_holdout_accuracy(summary, output_dir)
+    write_figure_captions(output_dir)
+    print(f"Figures written to {output_dir}")
 
 
 if __name__ == "__main__":

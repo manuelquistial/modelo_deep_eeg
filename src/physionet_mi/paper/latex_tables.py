@@ -53,9 +53,10 @@ def write_table_bundle(results_root: Path, output_dir: Path) -> list[Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
 
-    fixed = results_root.parent / "outputs" / "pipeline_comparison.csv"
-    if not fixed.exists():
-        fixed = Path("outputs/pipeline_comparison.csv")
+    from physionet_mi.paths import baseline_runs_dir, find_project_root
+
+    fixed = baseline_runs_dir(find_project_root())
+    fixed = fixed / "pipeline_comparison.csv"
     if fixed.exists():
         df = pd.read_csv(fixed)
         tex = dataframe_to_latex(

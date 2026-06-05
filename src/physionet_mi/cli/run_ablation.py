@@ -61,10 +61,12 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     df = pd.DataFrame(rows)
-    out = root / "outputs" / "ablation_summary.csv"
+    from physionet_mi.paths import baseline_runs_dir
+
+    out = baseline_runs_dir(root) / "ablation_summary.csv"
     out.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(out, index=False)
-    (root / "outputs" / "ablation_summary.json").write_text(
+    (baseline_runs_dir(root) / "ablation_summary.json").write_text(
         json.dumps(rows, indent=2), encoding="utf-8"
     )
     print(f"Saved ablation summary to {out}")

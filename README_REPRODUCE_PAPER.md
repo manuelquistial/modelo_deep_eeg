@@ -1,8 +1,15 @@
 # Reproduce Paper Experiments
 
-This guide extends the existing fixed hold-out benchmark (`outputs/`) with publishable repeated evaluation under `outputs_publishable/`.
+All generated data and experiment outputs are centralized under `artifacts/`.
+See `artifacts/README.md` for the full layout.
 
 **Note:** Leave-One-Subject-Out is intentionally excluded.
+
+## 0. Setup artifact folders
+
+```bash
+python scripts/setup_artifacts_layout.py
+```
 
 ## 1. Environment
 
@@ -10,7 +17,7 @@ This guide extends the existing fixed hold-out benchmark (`outputs/`) with publi
 pip install -e ".[ml,dev,riemann]"
 ```
 
-## 2. Data preparation (unchanged)
+## 2. Data preparation
 
 ```bash
 python scripts/prepare_data.py --config configs/preprocess_ea.yaml
@@ -19,13 +26,15 @@ python scripts/prepare_data.py --config configs/preprocess_bnci_ea.yaml
 python scripts/prepare_data.py --config configs/preprocess_bnci_no_ea.yaml
 ```
 
+Cache: `artifacts/cache/`
+
 ## 3. Fixed hold-out benchmark (preserve baseline)
 
 ```bash
 python scripts/compare_datasets.py --full
 ```
 
-Results: `outputs/pipeline_comparison.csv` (seed=42, unchanged).
+Results: `artifacts/runs/baseline/pipeline_comparison.csv` (seed=42).
 
 ## 4. Repeated subject-disjoint hold-out
 
@@ -35,7 +44,7 @@ python scripts/run_repeated_holdout.py \
   --seeds 0 1 2 3 4 5 6 7 8 9 \
   --models fbcsp_lda csp_svm riemann_mdm riemann_ts_lr \
   --ea both \
-  --output-dir outputs_publishable/repeated_holdout/physionet
+  --output-dir artifacts/runs/publishable/repeated_holdout/physionet
 ```
 
 ## 5. GroupKFold (classical models)
@@ -47,27 +56,27 @@ python scripts/run_groupkfold.py \
   --models fbcsp_lda csp_svm riemann_mdm riemann_ts_lr \
   --ea both \
   --skip-deep \
-  --output-dir outputs_publishable/groupkfold/physionet
+  --output-dir artifacts/runs/publishable/groupkfold/physionet
 ```
 
 ## 6. Statistical analysis
 
 ```bash
 python scripts/run_statistical_analysis.py \
-  --results outputs_publishable/repeated_holdout/physionet/repeated_holdout_results.csv \
-  --output-dir outputs_publishable/stats/physionet
+  --results artifacts/runs/publishable/repeated_holdout/physionet/repeated_holdout_results.csv \
+  --output-dir artifacts/runs/publishable/stats/physionet
 ```
 
 ## 7. Subject-level & neurophysiology
 
 ```bash
 python scripts/run_subject_level_analysis.py \
-  --predictions-root outputs_publishable/repeated_holdout/physionet \
-  --output-dir outputs_publishable/subject_level/physionet
+  --predictions-root artifacts/runs/publishable/repeated_holdout/physionet \
+  --output-dir artifacts/runs/publishable/subject_level/physionet
 
 python scripts/run_neurophysiology_analysis.py \
   --dataset physionet --ea both \
-  --output-dir outputs_publishable/neurophysiology/physionet
+  --output-dir artifacts/runs/publishable/neurophysiology/physionet
 ```
 
 ## 8. Paper tables & figures
@@ -79,28 +88,15 @@ python scripts/generate_reproducibility_report.py
 python scripts/generate_paper_text_snippets.py
 ```
 
-## 9. Paperspace / full pipeline (resumable)
+Outputs: `artifacts/paper/tables/`, `artifacts/paper/figures/`, `artifacts/reports/`
 
-Main command on Paperspace GPU:
+## 9. Paperspace / full pipeline (resumable)
 
 ```bash
 ./run_paperspace_publishable_experiments.sh
 ```
 
-Equivalent Python command (GPU-aware, excludes EEGMeModel initially):
-
-```bash
-python scripts/run_all_publishable_experiments.py \
-  --stage all \
-  --datasets physionet bnci \
-  --models fbcsp_lda csp_svm riemann_mdm riemann_ts_lr eegnet \
-  --seeds 0 1 2 3 4 5 6 7 8 9 \
-  --n-splits 5 \
-  --skip-existing \
-  --output-root outputs_publishable
-```
-
-Smoke test (one seed, one classical model):
+Smoke test:
 
 ```bash
 python scripts/run_all_publishable_experiments.py \
@@ -110,25 +106,12 @@ python scripts/run_all_publishable_experiments.py \
   --seeds 0 \
   --ea false \
   --skip-existing \
-  --output-root outputs_publishable_smoke_test
+  --output-root artifacts/smoke
 ```
 
-Add EEGMeModel later:
+Resume after interruption: re-run with `--skip-existing`.
 
-```bash
-python scripts/run_all_publishable_experiments.py \
-  --stage repeated_holdout \
-  --datasets physionet bnci \
-  --models eegme \
-  --seeds 0 1 2 3 4 5 6 7 8 9 \
-  --skip-existing \
-  --output-root outputs_publishable
-```
+- Log: `artifacts/reports/paperspace_execution_log.txt`
+- Failed runs: `artifacts/failed_runs/failed_runs.csv`
 
-Resume after interruption: re-run the same command with `--skip-existing`.
-Execution log: `outputs_publishable/reports/paperspace_execution_log.txt`
-Failed runs: `outputs_publishable/failed_runs/failed_runs.csv`
-
-## Expected outputs
-
-See `outputs_publishable/reports/implementation_plan.md` and `outputs_publishable/reports/reproducibility_report.md`.
+LaTeX **source** stays in `paper/ieee/` (versioned). Generated tables/figures go to `artifacts/paper/`.

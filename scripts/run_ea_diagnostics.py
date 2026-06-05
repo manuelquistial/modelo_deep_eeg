@@ -39,7 +39,9 @@ def main() -> None:
     df["dataset"] = dataset
     df.to_csv(args.output_dir / "ea_covariance_distances.csv", index=False)
 
-    fixed = ROOT / "outputs" / "pipeline_comparison.csv"
+    from physionet_mi.paths import baseline_runs_dir
+
+    fixed = baseline_runs_dir(ROOT) / "pipeline_comparison.csv"
     if fixed.exists():
         comp = pd.read_csv(fixed)
         comp.groupby(["dataset", "model"]).apply(

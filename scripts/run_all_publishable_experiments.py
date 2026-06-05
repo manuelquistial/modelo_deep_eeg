@@ -14,7 +14,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "src"))
 PY = sys.executable
+
+from physionet_mi.paths import (  # noqa: E402
+    artifacts_root,
+    cache_dir,
+    ensure_artifact_tree,
+    resolve_output_layout,
+)
 
 DEEP_MODELS = frozenset({"eegnet", "eegme"})
 RIEMANN_MODELS = frozenset({"riemann_mdm", "riemann_ts_lr", "riemann_fgmdm", "riemann_ts_svm"})
@@ -212,19 +220,20 @@ def verify_environment(logger: ExecutionLogger) -> None:
 
 def _cache_marker_paths(dataset: str) -> list[Path]:
     ds = _dataset_key(dataset)
+    cache_root = cache_dir(ROOT)
     if ds == "physionet":
         patterns = [
-            "data/processed/physionet_lr_ea_*",
-            "data/processed/physionet_lr_no_ea_*",
+            "physionet_lr_ea_*",
+            "physionet_lr_no_ea_*",
         ]
     else:
         patterns = [
-            "data/processed/bnci*_ea_*",
-            "data/processed/bnci*_no_ea_*",
+            "bnci*_ea_*",
+            "bnci*_no_ea_*",
         ]
     markers: list[Path] = []
     for pat in patterns:
-        for d in ROOT.glob(pat):
+        for d in cache_root.glob(pat):
             if (d / "subject_dict_raw.joblib").exists() or (d / "meta.json").exists():
                 markers.append(d)
     return markers
@@ -290,34 +299,41 @@ def _aggregate_riemannian_from_holdout(
         return False
 
 
-def generate_implementation_summary(output_root: Path, logger: ExecutionLogger) -> None:
+def generate_implementation_summary(layout: dict[str, Path], logger: ExecutionLogger) -> None:
     logger.section("STAGE 14: Generate implementation summary")
-    out = output_root / "reports" / "implementation_summary.md"
+    out = layout["reports"] / "implementation_summary.md"
     out.parent.mkdir(parents=True, exist_ok=True)
+    art_root = layout["root"]
 
     lines = [
         "# Implementation Summary\n",
         f"Generated: {_now_iso()}\n",
-        "## Output root\n",
-        f"`{output_root}`\n",
+        "## Artifacts root\n",
+        f"`{art_root}`\n",
         "## Completed artifacts\n",
     ]
 
     checks = [
-        ("Repeated hold-out", "repeated_holdout/*/repeated_holdout_results.csv"),
-        ("GroupKFold", "groupkfold/*/groupkfold_results.csv"),
-        ("Riemannian", "riemannian/*/riemannian_results.csv"),
-        ("Statistics", "stats/*/bootstrap_ci.csv"),
-        ("Subject-level", "subject_level/*/subject_level_metrics.csv"),
-        ("Neurophysiology", "neurophysiology/*/erd_ers_trial_level.csv"),
-        ("EA diagnostics", "ea_diagnostics/*/ea_covariance_distances.csv"),
-        ("Paper tables", "paper_tables/*.tex"),
-        ("Paper figures", "paper_figures/*.pdf"),
-        ("Reproducibility", "reports/reproducibility_report.md"),
-        ("Failed runs", "failed_runs/failed_runs.csv"),
+        ("Repeated hold-out", layout["publishable"] / "repeated_holdout"),
+        ("GroupKFold", layout["publishable"] / "groupkfold"),
+        ("Riemannian", layout["publishable"] / "riemannian"),
+        ("Statistics", layout["publishable"] / "stats"),
+        ("Subject-level", layout["publishable"] / "subject_level"),
+        ("Neurophysiology", layout["publishable"] / "neurophysiology"),
+        ("EA diagnostics", layout["publishable"] / "ea_diagnostics"),
+        ("Paper tables", layout["paper_tables"]),
+        ("Paper figures", layout["paper_figures"]),
+        ("Reproducibility", layout["reports"] / "reproducibility_report.md"),
+        ("Failed runs", layout["failed_runs"] / "failed_runs.csv"),
     ]
-    for label, pattern in checks:
-        matches = list(output_root.glob(pattern))
+    for label, path in checks:
+        if path.is_file():
+            matches = [path]
+        elif path.is_dir():
+            matches = list(path.rglob("*"))
+            matches = [m for m in matches if m.is_file()]
+        else:
+            matches = []
         status = f"{len(matches)} file(s)" if matches else "not found"
         lines.append(f"- **{label}**: {status}\n")
 
@@ -358,8 +374,8 @@ def main() -> None:
     p.add_argument(
         "--output-root",
         type=Path,
-        default=ROOT / "outputs_publishable",
-        help="Root directory for all publishable outputs",
+        default=None,
+        help="Artifacts root (default: artifacts/). Legacy outputs_publishable/ still supported.",
     )
     p.add_argument(
         "--log-file",
@@ -369,14 +385,15 @@ def main() -> None:
     )
     args = p.parse_args()
 
-    output_root = args.output_root.resolve()
-    log_path = (args.log_file or output_root / "reports" / "paperspace_execution_log.txt").resolve()
-    failed_csv = output_root / "failed_runs" / "failed_runs.csv"
+    output_root = (args.output_root or artifacts_root(ROOT)).resolve()
+    layout = resolve_output_layout(output_root)
+    log_path = (args.log_file or layout["reports"] / "paperspace_execution_log.txt").resolve()
+    failed_csv = layout["failed_runs"] / "failed_runs.csv"
     logger = ExecutionLogger(log_path)
 
-    output_root.mkdir(parents=True, exist_ok=True)
-    (output_root / "reports").mkdir(parents=True, exist_ok=True)
-    (output_root / "failed_runs").mkdir(parents=True, exist_ok=True)
+    ensure_artifact_tree(ROOT)
+    for key in ("reports", "failed_runs", "publishable", "paper_tables", "paper_figures"):
+        layout[key].mkdir(parents=True, exist_ok=True)
 
     ea = _ea_flag(args.ea)
     models = _resolve_models(args.models, only_classical=args.only_classical, skip_deep=args.skip_deep)
@@ -421,7 +438,7 @@ def main() -> None:
     for ds in args.datasets:
         if "repeated_holdout" in stages:
             logger.section(f"STAGE 3: Repeated hold-out — {ds}")
-            out = output_root / "repeated_holdout" / ds
+            out = layout["publishable"] / "repeated_holdout" / ds
             cmd = [
                 PY,
                 "scripts/run_repeated_holdout.py",
@@ -455,7 +472,7 @@ def main() -> None:
             if not args.groupkfold_deep:
                 gk_models = [m for m in gk_models if m not in DEEP_MODELS]
             n_splits = args.n_splits if ds == "physionet" else min(args.n_splits, 3)
-            out = output_root / "groupkfold" / ds
+            out = layout["publishable"] / "groupkfold" / ds
             cmd = [
                 PY,
                 "scripts/run_groupkfold.py",
@@ -485,9 +502,9 @@ def main() -> None:
 
         if "riemannian" in stages:
             logger.section(f"STAGE 5: Riemannian baselines — {ds}")
-            riemann_out = output_root / "riemannian" / ds
+            riemann_out = layout["publishable"] / "riemannian" / ds
             riemann_csv = riemann_out / "riemannian_results.csv"
-            holdout_csv = output_root / "repeated_holdout" / ds / "repeated_holdout_results.csv"
+            holdout_csv = layout["publishable"] / "repeated_holdout" / ds / "repeated_holdout_results.csv"
 
             if args.skip_existing and riemann_csv.exists():
                 logger.write(f"Skipping Riemannian stage; exists: {riemann_csv}")
@@ -521,7 +538,7 @@ def main() -> None:
 
         if "stats" in stages:
             logger.section(f"STAGE 6: Statistical analysis — {ds}")
-            res = output_root / "repeated_holdout" / ds / "repeated_holdout_results.csv"
+            res = layout["publishable"] / "repeated_holdout" / ds / "repeated_holdout_results.csv"
             if res.exists() or args.dry_run:
                 run_cmd(
                     [
@@ -530,7 +547,7 @@ def main() -> None:
                         "--results",
                         str(res),
                         "--output-dir",
-                        str(output_root / "stats" / ds),
+                        str(layout["publishable"] / "stats" / ds),
                     ],
                     logger=logger,
                     stage="stats",
@@ -543,7 +560,7 @@ def main() -> None:
 
         if "subject_level" in stages:
             logger.section(f"STAGE 7: Subject-level analysis — {ds}")
-            pred_root = output_root / "repeated_holdout" / ds
+            pred_root = layout["publishable"] / "repeated_holdout" / ds
             if pred_root.exists() or args.dry_run:
                 run_cmd(
                     [
@@ -552,7 +569,7 @@ def main() -> None:
                         "--predictions-root",
                         str(pred_root),
                         "--output-dir",
-                        str(output_root / "subject_level" / ds),
+                        str(layout["publishable"] / "subject_level" / ds),
                     ],
                     logger=logger,
                     stage="subject_level",
@@ -574,7 +591,7 @@ def main() -> None:
                     "--ea",
                     ea,
                     "--output-dir",
-                    str(output_root / "neurophysiology" / ds),
+                    str(layout["publishable"] / "neurophysiology" / ds),
                 ],
                 logger=logger,
                 stage="neurophysiology",
@@ -592,7 +609,7 @@ def main() -> None:
                     "--dataset",
                     ds,
                     "--output-dir",
-                    str(output_root / "ea_diagnostics" / ds),
+                    str(layout["publishable"] / "ea_diagnostics" / ds),
                 ],
                 logger=logger,
                 stage="ea_diagnostics",
@@ -608,9 +625,9 @@ def main() -> None:
                 PY,
                 "scripts/generate_paper_tables.py",
                 "--results-root",
-                str(output_root),
+                str(layout["results_root"]),
                 "--output-dir",
-                str(output_root / "paper_tables"),
+                str(layout["paper_tables"]),
             ],
             logger=logger,
             stage="paper_tables",
@@ -626,9 +643,9 @@ def main() -> None:
                 PY,
                 "scripts/generate_paper_figures.py",
                 "--results-root",
-                str(output_root),
+                str(layout["results_root"]),
                 "--output-dir",
-                str(output_root / "paper_figures"),
+                str(layout["paper_figures"]),
             ],
             logger=logger,
             stage="paper_figures",
@@ -644,9 +661,9 @@ def main() -> None:
                 PY,
                 "scripts/generate_reproducibility_report.py",
                 "--results-root",
-                str(output_root),
+                str(layout["results_root"]),
                 "--output",
-                str(output_root / "reports" / "reproducibility_report.md"),
+                str(layout["reports"] / "reproducibility_report.md"),
             ],
             logger=logger,
             stage="reproducibility_report",
@@ -662,9 +679,9 @@ def main() -> None:
                 PY,
                 "scripts/generate_paper_text_snippets.py",
                 "--results-root",
-                str(output_root),
+                str(layout["results_root"]),
                 "--output",
-                str(output_root / "paper_tables" / "generated_result_sentences.md"),
+                str(layout["paper_tables"] / "generated_result_sentences.md"),
             ],
             logger=logger,
             stage="paper_text_snippets",
@@ -675,7 +692,7 @@ def main() -> None:
 
     if "implementation_summary" in stages:
         if not args.dry_run:
-            generate_implementation_summary(output_root, logger)
+            generate_implementation_summary(layout, logger)
         else:
             logger.write("DRY-RUN: would write implementation_summary.md")
 

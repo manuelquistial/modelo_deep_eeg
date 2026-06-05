@@ -1,9 +1,9 @@
 data:
   dataset: physionet
-  mne_data_dir: "data/mne"
+  mne_data_dir: "artifacts/raw"
   subject_ids: null
   binary_events: ["left_hand", "right_hand"]
-  cache_dir: "data/processed"
+  cache_dir: "artifacts/cache"
   bnci_tmin: 0.0
   bnci_tmax: 4.0
   bnci_resample: 125.0
@@ -84,4 +84,4 @@ eval:
     - macro_f1
     - kappa
 
-outputs_dir: "outputs"
+outputs_dir: "artifacts/runs/baseline"
