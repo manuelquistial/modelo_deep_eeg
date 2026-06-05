@@ -53,8 +53,8 @@ outputs_publishable/reports/paperspace_execution_log.txt
 outputs_publishable/reports/reproducibility_report.md
 outputs_publishable/reports/implementation_summary.md
 
-# Literature PDFs (large); keep markdown/json/extracted text
-literature_comparison/pdfs/
+# Literature review artifacts (local Zotero extracts; privacy — do not commit)
+/literature_comparison/
 
 # Generated figures inside experiment runs
 **/confusion_matrix.png
