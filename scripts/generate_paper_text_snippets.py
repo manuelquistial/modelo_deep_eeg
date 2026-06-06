@@ -24,6 +24,25 @@ def main() -> None:
     output = args.output or (paper_tables_dir(ROOT) / "generated_result_sentences.md")
     lines = ["# Generated result sentences\n\n"]
 
+    lines.append("## Methodology (repeated hold-out)\n\n")
+    lines.append(
+        "Full (LaTeX):\n\n"
+        "```latex\n"
+        "To assess the stability of the benchmark with respect to random subject partitioning "
+        "and stochastic model training, we used a repeated subject-disjoint hold-out protocol "
+        "with ten repetitions. A master random seed of 42 was used to generate the sequence of "
+        "repeated splits using NumPy's default random number generator. For each repetition, the "
+        "generated seed controlled the subject split and, for deep learning models, the stochastic "
+        "training components. Results are reported as mean $\\pm$ standard deviation across "
+        "repetitions.\n"
+        "```\n\n"
+    )
+    lines.append(
+        "Short (abstract/methods summary):\n\n"
+        "> Repeated subject-disjoint hold-out (10 repetitions) used master seed 42 to draw "
+        "reproducible split seeds; mean ± SD across repetitions.\n\n"
+    )
+
     summary_files = list(results_root.glob("**/repeated_holdout_summary.csv"))
     if not summary_files:
         lines.append("Insufficient evidence: run repeated hold-out first.\n")
@@ -78,7 +97,7 @@ def main() -> None:
                 f"(std of mean subject accuracy ≈ {std_acc:.3f}).\n"
             )
 
-    lat = list(args.results_root.glob("**/lateralization_vs_accuracy.csv"))
+    lat = list(results_root.glob("**/lateralization_vs_accuracy.csv"))
     if lat:
         ldf = pd.read_csv(lat[0])
         sig = ldf[ldf["pearson_p"] < 0.05] if "pearson_p" in ldf.columns else pd.DataFrame()

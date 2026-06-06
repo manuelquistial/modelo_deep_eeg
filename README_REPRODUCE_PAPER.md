@@ -41,11 +41,18 @@ Results: `artifacts/runs/baseline/pipeline_comparison.csv` (seed=42).
 ```bash
 python scripts/run_repeated_holdout.py \
   --dataset physionet \
-  --seeds 0 1 2 3 4 5 6 7 8 9 \
+  --master-seed 42 \
+  --n-repeats 10 \
   --models fbcsp_lda csp_svm riemann_mdm riemann_ts_lr \
   --ea both \
   --output-dir artifacts/runs/publishable/repeated_holdout/physionet
 ```
+
+### Repeated hold-out randomization
+
+Repeated subject-disjoint hold-out experiments are controlled using a master seed. By default, `master_seed=42` and `n_repeats=10`. The repository uses NumPy's `default_rng(master_seed)` to generate the reproducible sequence of split seeds. Each repetition stores its `repeat_id`, `split_seed`, and `model_seed` in the output metadata (`repeat_seeds.csv`, `split_metadata.json`, `repeated_holdout_results.csv`).
+
+Legacy explicit seeds (`--seeds 0 1 2 ...`) remain supported for backward compatibility.
 
 ## 5. GroupKFold (classical models)
 
@@ -96,6 +103,9 @@ Outputs: `artifacts/paper/tables/`, `artifacts/paper/figures/`, `artifacts/repor
 ./run_paperspace_publishable_experiments.sh
 ```
 
+Classical models run in parallel on CPU (`--parallel-jobs 4` by default in the orchestrator).
+EEGNet/EEGMeModel stay **sequential on GPU** to avoid VRAM contention.
+
 Smoke test:
 
 ```bash
@@ -103,7 +113,8 @@ python scripts/run_all_publishable_experiments.py \
   --stage repeated_holdout \
   --datasets bnci \
   --models fbcsp_lda \
-  --seeds 0 \
+  --master-seed 42 \
+  --n-repeats 1 \
   --ea false \
   --skip-existing \
   --output-root artifacts/smoke

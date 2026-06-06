@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 PY = sys.executable
 
+from physionet_mi.evaluation.random_seeds import resolve_repeat_seeds  # noqa: E402
 from physionet_mi.paths import (  # noqa: E402
     artifacts_root,
     cache_dir,
@@ -324,7 +325,10 @@ class PipelineContext:
     stages: list[str]
     datasets: list[str]
     models: list[str]
-    seeds: list[int]
+    master_seed: int | None
+    n_repeats: int
+    legacy_explicit_seeds: bool
+    explicit_seeds: list[int] | None
     ea: str
     skip_existing: bool
     dry_run: bool
@@ -392,7 +396,11 @@ def write_execution_marker(
         f"Artifacts root: {ctx.layout['root']}",
         f"Datasets: {', '.join(ctx.datasets)}",
         f"Models: {', '.join(ctx.models)}",
-        f"Seeds: {', '.join(str(s) for s in ctx.seeds)}",
+        (
+            f"Seeds (legacy): {', '.join(str(s) for s in ctx.explicit_seeds)}"
+            if ctx.legacy_explicit_seeds and ctx.explicit_seeds
+            else f"Master seed: {ctx.master_seed}, n_repeats: {ctx.n_repeats}"
+        ),
         f"EA mode: {ctx.ea}",
         f"Skip existing: {ctx.skip_existing}",
         f"Dry run: {ctx.dry_run}",
@@ -474,7 +482,30 @@ def main() -> None:
         nargs="+",
         default=["fbcsp_lda", "csp_svm", "riemann_mdm", "riemann_ts_lr", "eegnet", "eegme"],
     )
-    p.add_argument("--seeds", nargs="+", type=int, default=list(range(10)))
+    p.add_argument(
+        "--seeds",
+        nargs="+",
+        type=int,
+        default=None,
+        help="Legacy explicit split seeds. Prefer --master-seed and --n-repeats.",
+    )
+    p.add_argument(
+        "--master-seed",
+        type=int,
+        default=None,
+        help="Master seed for repeated hold-out (default: 42)",
+    )
+    p.add_argument(
+        "--n-repeats",
+        type=int,
+        default=None,
+        help="Number of repeated hold-out partitions (default: 10)",
+    )
+    p.add_argument(
+        "--separate-model-seeds",
+        action="store_true",
+        help="Draw independent model seeds from the master RNG",
+    )
     p.add_argument("--ea", default="both", help="EA mode for training scripts: true|false|both")
     p.add_argument("--n-splits", type=int, default=5)
     p.add_argument("--skip-deep", action="store_true", help="Exclude deep models where supported")
@@ -482,6 +513,12 @@ def main() -> None:
     p.add_argument("--only-classical", action="store_true", help="Classical models only")
     p.add_argument("--groupkfold-deep", action="store_true", help="Include deep models in GroupKFold")
     p.add_argument("--force-prepare", action="store_true", help="Always run prepare_data")
+    p.add_argument(
+        "--parallel-jobs",
+        type=int,
+        default=4,
+        help="Parallel CPU workers for classical models per seed/fold (deep models stay on GPU sequentially)",
+    )
     p.add_argument("--dry-run", action="store_true", help="Print commands without executing")
     p.add_argument(
         "--output-root",
@@ -496,6 +533,16 @@ def main() -> None:
         help="Execution log path (default: <output-root>/reports/paperspace_execution_log.txt)",
     )
     args = p.parse_args()
+
+    try:
+        _, master_seed, n_repeats, legacy_seeds = resolve_repeat_seeds(
+            explicit_seeds=args.seeds,
+            master_seed=args.master_seed,
+            n_repeats=args.n_repeats,
+            separate_model_seeds=args.separate_model_seeds,
+        )
+    except ValueError as exc:
+        p.error(str(exc))
 
     output_root = (args.output_root or artifacts_root(ROOT)).resolve()
     layout = resolve_output_layout(output_root)
@@ -531,7 +578,10 @@ def main() -> None:
         stages=stages,
         datasets=args.datasets,
         models=models,
-        seeds=args.seeds,
+        master_seed=master_seed,
+        n_repeats=n_repeats,
+        legacy_explicit_seeds=legacy_seeds,
+        explicit_seeds=args.seeds,
         ea=ea,
         skip_existing=args.skip_existing,
         dry_run=args.dry_run,
@@ -546,9 +596,16 @@ def main() -> None:
     logger.write(f"Output root: {output_root}")
     logger.write(f"Datasets: {args.datasets}")
     logger.write(f"Models: {models}")
-    logger.write(f"Seeds: {args.seeds}")
+    if legacy_seeds:
+        logger.write(f"Seeds (legacy --seeds): {args.seeds}")
+        logger.write(
+            "WARNING: Using explicit --seeds. For manuscript experiments, prefer --master-seed and --n-repeats."
+        )
+    else:
+        logger.write(f"Master seed: {master_seed}, n_repeats: {n_repeats}")
     logger.write(f"EA: {ea}")
     logger.write(f"Skip existing: {args.skip_existing}")
+    logger.write(f"Parallel jobs (classical): {args.parallel_jobs}")
 
     if "verify_env" in stages:
         verify_environment(logger)
@@ -571,8 +628,6 @@ def main() -> None:
                 "scripts/run_repeated_holdout.py",
                 "--dataset",
                 ds,
-                "--seeds",
-                *[str(s) for s in args.seeds],
                 "--models",
                 *models,
                 "--ea",
@@ -580,10 +635,18 @@ def main() -> None:
                 "--output-dir",
                 str(out),
             ]
+            if legacy_seeds:
+                cmd.extend(["--seeds", *[str(s) for s in args.seeds]])
+            else:
+                cmd.extend(["--master-seed", str(master_seed), "--n-repeats", str(n_repeats)])
+            if args.separate_model_seeds:
+                cmd.append("--separate-model-seeds")
             if args.skip_existing:
                 cmd.append("--skip-existing")
             if args.only_classical:
                 cmd.append("--only-classical")
+            if args.parallel_jobs > 1:
+                cmd.extend(["--parallel-jobs", str(args.parallel_jobs)])
             run_cmd(
                 cmd,
                 logger=logger,
@@ -614,10 +677,14 @@ def main() -> None:
                 "--output-dir",
                 str(out),
             ]
+            if master_seed is not None:
+                cmd.extend(["--master-seed", str(master_seed)])
             if args.skip_existing:
                 cmd.append("--skip-existing")
             if not args.groupkfold_deep:
                 cmd.append("--skip-deep")
+            if args.parallel_jobs > 1:
+                cmd.extend(["--parallel-jobs", str(args.parallel_jobs)])
             run_cmd(
                 cmd,
                 logger=logger,
@@ -645,11 +712,13 @@ def main() -> None:
                     ds,
                     "--ea",
                     ea,
-                    "--seeds",
-                    *[str(s) for s in args.seeds],
                     "--output-dir",
                     str(riemann_out),
                 ]
+                if legacy_seeds:
+                    cmd.extend(["--seeds", *[str(s) for s in args.seeds]])
+                else:
+                    cmd.extend(["--master-seed", str(master_seed), "--n-repeats", str(n_repeats)])
                 if args.skip_existing:
                     cmd.append("--skip-existing")
                 run_cmd(

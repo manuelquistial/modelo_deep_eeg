@@ -15,9 +15,11 @@ python scripts/run_all_publishable_experiments.py \
   --stage all \
   --datasets physionet bnci \
   --models fbcsp_lda csp_svm riemann_mdm riemann_ts_lr eegnet \
-  --seeds 0 1 2 3 4 5 6 7 8 9 \
+  --master-seed 42 \
+  --n-repeats 10 \
   --n-splits 5 \
   --skip-existing \
+  --parallel-jobs 4 \
   --output-root artifacts \
   2>&1 | tee artifacts/reports/paperspace_execution_log.txt
 

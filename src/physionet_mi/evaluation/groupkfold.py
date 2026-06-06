@@ -12,8 +12,15 @@ import pandas as pd
 from physionet_mi.config import load_config
 from physionet_mi.data.cache import build_arrays_for_subject_split, load_raw_subject_dict
 from physionet_mi.evaluation.config_matrix import resolve_config_path
-from physionet_mi.evaluation.runners import ALL_MODELS, evaluate_model_on_arrays
-from physionet_mi.evaluation.subject_splits import make_groupkfold_splits, save_split_metadata, summarize_split
+from physionet_mi.evaluation.parallel_runner import (
+    ModelJob,
+    build_split_metadata,
+    effective_inner_n_jobs,
+    run_model_jobs,
+)
+from physionet_mi.evaluation.random_seeds import generate_repeat_seeds
+from physionet_mi.evaluation.runners import ALL_MODELS
+from physionet_mi.evaluation.subject_splits import make_groupkfold_splits
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +50,14 @@ def run_groupkfold(
     project_root: Path,
     skip_deep: bool = False,
     skip_existing: bool = False,
+    parallel_jobs: int = 1,
+    master_seed: int = 42,
 ) -> pd.DataFrame:
     output_dir.mkdir(parents=True, exist_ok=True)
+    parallel_jobs = max(1, int(parallel_jobs))
+    inner_n_jobs = effective_inner_n_jobs(parallel_jobs)
     rows: list[dict] = []
+    model_list = list(models)
 
     for use_ea in ea_modes:
         preprocess = "ea" if use_ea else "no_ea"
@@ -54,11 +66,30 @@ def run_groupkfold(
         subj_data, ch_names, _ = load_raw_subject_dict(cfg)
         all_subjects = np.array(sorted(subj_data.keys()), dtype=int)
         folds = make_groupkfold_splits(all_subjects, n_splits)
+        fold_seeds = generate_repeat_seeds(master_seed=master_seed, n_repeats=n_splits)
 
         for fold_idx, (test_ids, dev_ids) in enumerate(folds):
+            split_seed = fold_seeds[fold_idx].split_seed
+            model_seed = fold_seeds[fold_idx].model_seed
             arrays = build_arrays_for_subject_split(cfg, subj_data, dev_ids, test_ids, ch_names)
+            split_meta = build_split_metadata(
+                dataset=dataset,
+                fold=fold_idx,
+                seed=split_seed,
+                train_subjects=dev_ids,
+                test_subjects=test_ids,
+                arrays=arrays,
+                val_subjects=np.array([], dtype=int),
+            )
+            split_meta.update({
+                "master_seed": int(master_seed),
+                "repeat_id": int(fold_idx),
+                "split_seed": int(split_seed),
+                "model_seed": int(model_seed),
+            })
 
-            for model_name in models:
+            pending_jobs: list[ModelJob] = []
+            for model_name in model_list:
                 if model_name not in ALL_MODELS:
                     continue
                 if skip_deep and model_name in {"eegnet", "eegme"}:
@@ -69,24 +100,26 @@ def run_groupkfold(
                 if skip_existing and _should_skip_existing_run(run_dir):
                     continue
 
-                split_meta = summarize_split(
-                    dataset=dataset,
-                    fold=fold_idx,
-                    train_subjects=dev_ids,
-                    val_subjects=np.array([], dtype=int),
-                    test_subjects=test_ids,
-                    y=np.concatenate([arrays["y_dev"], arrays["y_test"]]),
-                    groups=np.concatenate([arrays["groups_dev"], arrays["groups_test"]]),
+                pending_jobs.append(
+                    ModelJob(
+                        model_name=model_name,
+                        cfg_path=str(cfg_path),
+                        project_root=str(project_root),
+                        run_dir=str(run_dir),
+                        protocol="groupkfold",
+                        inner_n_jobs=inner_n_jobs,
+                        split_seed=split_seed,
+                        model_seed=model_seed,
+                        meta=split_meta,
+                        arrays=arrays,
+                    )
                 )
-                save_split_metadata(run_dir / "fold_metadata.json", split_meta)
 
-                metrics = evaluate_model_on_arrays(
-                    model_name, cfg, arrays, run_dir, protocol="groupkfold"
-                )
-                rows.append({
+            def _build_row(job: ModelJob, metrics: dict) -> dict:
+                return {
                     "dataset": dataset,
                     "fold": fold_idx,
-                    "model": model_name,
+                    "model": job.model_name,
                     "use_ea": use_ea,
                     "n_dev_subjects": len(dev_ids),
                     "n_test_subjects": len(test_ids),
@@ -97,7 +130,15 @@ def run_groupkfold(
                     "kappa": metrics.get("kappa"),
                     "status": metrics.get("status", "ok"),
                     "error_message": metrics.get("error_message", ""),
-                })
+                }
+
+            rows.extend(
+                run_model_jobs(
+                    pending_jobs,
+                    parallel_jobs=parallel_jobs,
+                    row_builder=_build_row,
+                )
+            )
 
     df = pd.DataFrame(rows)
     df.to_csv(output_dir / "groupkfold_results.csv", index=False)

@@ -24,6 +24,18 @@ def main() -> None:
     p.add_argument("--output-dir", type=Path, required=True)
     p.add_argument("--skip-deep", action="store_true")
     p.add_argument("--skip-existing", action="store_true")
+    p.add_argument(
+        "--parallel-jobs",
+        type=int,
+        default=1,
+        help="Parallel workers for classical models per fold",
+    )
+    p.add_argument(
+        "--master-seed",
+        type=int,
+        default=42,
+        help="Master seed for fold-level val-split and model randomness",
+    )
     args = p.parse_args()
 
     dataset = "bnci2014_001" if args.dataset == "bnci" else args.dataset
@@ -38,6 +50,8 @@ def main() -> None:
         project_root=ROOT,
         skip_deep=args.skip_deep,
         skip_existing=args.skip_existing,
+        parallel_jobs=args.parallel_jobs,
+        master_seed=args.master_seed,
     )
 
 
