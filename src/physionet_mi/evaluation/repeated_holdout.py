@@ -24,6 +24,21 @@ from physionet_mi.evaluation.subject_splits import (
 
 logger = logging.getLogger(__name__)
 
+
+def _should_skip_existing_run(run_dir: Path) -> bool:
+    """Skip only successful prior runs; retry failed or incomplete artifacts."""
+    metrics_path = run_dir / "metrics.json"
+    if not metrics_path.exists():
+        return False
+    try:
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+    if data.get("status") == "error":
+        return False
+    return "accuracy" in data
+
+
 def _parse_ea(ea: str | bool) -> list[bool]:
     if isinstance(ea, bool):
         return [ea]
@@ -78,9 +93,10 @@ def run_repeated_holdout(
                 run_dir = output_dir / run_tag
                 result_csv = run_dir / "metrics.json"
 
-                if skip_existing and result_csv.exists():
+                if skip_existing and _should_skip_existing_run(run_dir):
                     logger.info("Skipping existing %s", run_tag)
-                    metrics = json.loads(result_csv.read_text())
+                    metrics = json.loads(result_csv.read_text(encoding="utf-8"))
+                    metrics.setdefault("status", "ok")
                     rows.append(_row_from_metrics(
                         dataset, seed, model_name, use_ea,
                         arrays, n_train_subj, 0, n_test_subj, metrics,

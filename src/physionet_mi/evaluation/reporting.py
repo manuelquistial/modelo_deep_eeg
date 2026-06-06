@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -16,6 +17,29 @@ from physionet_mi.evaluation.metrics import (
     compute_metrics,
     confusion_matrix_fixed,
 )
+
+# Keys with large/non-JSON payloads kept for CSV/plots only.
+_METRICS_JSON_EXCLUDE = frozenset({"groups"})
+
+
+def _json_sanitize(value: Any) -> Any:
+    """Convert numpy/scalar values to JSON-serializable Python types."""
+    if isinstance(value, np.ndarray):
+        return value.tolist()
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, dict):
+        return {str(k): _json_sanitize(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_sanitize(v) for v in value]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
+def _prepare_metrics_for_json(metrics: dict[str, Any]) -> dict[str, Any]:
+    payload = {k: v for k, v in metrics.items() if k not in _METRICS_JSON_EXCLUDE}
+    return _json_sanitize(payload)
 
 
 def save_run_artifacts(
@@ -31,7 +55,10 @@ def save_run_artifacts(
     if extra:
         metrics.update(extra)
 
-    (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    (out_dir / "metrics.json").write_text(
+        json.dumps(_prepare_metrics_for_json(metrics), indent=2),
+        encoding="utf-8",
+    )
     (out_dir / "classification_report.txt").write_text(
         classification_report_fixed(y_true, y_pred), encoding="utf-8"
     )

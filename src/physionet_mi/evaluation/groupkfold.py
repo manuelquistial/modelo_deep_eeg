@@ -18,6 +18,21 @@ from physionet_mi.evaluation.subject_splits import make_groupkfold_splits, save_
 logger = logging.getLogger(__name__)
 
 
+def _should_skip_existing_run(run_dir: Path) -> bool:
+    metrics_path = run_dir / "metrics.json"
+    if not metrics_path.exists():
+        return False
+    try:
+        import json
+
+        data = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return False
+    if data.get("status") == "error":
+        return False
+    return "accuracy" in data
+
+
 def run_groupkfold(
     *,
     dataset: str,
@@ -51,7 +66,7 @@ def run_groupkfold(
 
                 run_tag = f"{model_name}_{preprocess}_fold{fold_idx}"
                 run_dir = output_dir / run_tag
-                if skip_existing and (run_dir / "metrics.json").exists():
+                if skip_existing and _should_skip_existing_run(run_dir):
                     continue
 
                 split_meta = summarize_split(

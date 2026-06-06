@@ -116,7 +116,14 @@ def run_cmd(
     if dry_run:
         return 0
     try:
-        proc = subprocess.run(cmd, cwd=ROOT, check=False, capture_output=True, text=True)
+        proc = subprocess.Popen(
+            cmd,
+            cwd=ROOT,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
+        )
     except Exception as exc:
         _append_failed_run(
             failed_csv,
@@ -131,27 +138,33 @@ def run_cmd(
             raise
         return -1
 
-    if proc.stdout:
-        logger.write(proc.stdout.rstrip())
-    if proc.stderr:
-        logger.write(proc.stderr.rstrip())
+    assert proc.stdout is not None
+    output_lines: list[str] = []
+    for line in proc.stdout:
+        output_lines.append(line)
+        print(line, end="", flush=True)
 
-    if proc.returncode != 0:
-        err = (proc.stderr or proc.stdout or "non-zero exit").strip()[:2000]
+    returncode = proc.wait()
+    if output_lines:
+        logger.write("".join(output_lines).rstrip())
+
+    if returncode != 0:
+        err = "".join(output_lines).strip()[:2000] or "non-zero exit"
         _append_failed_run(
             failed_csv,
             stage=stage,
             dataset=dataset,
             command=cmd_str,
-            returncode=proc.returncode,
+            returncode=returncode,
             error_message=err,
         )
-        logger.write(f"FAILED (exit {proc.returncode}): {cmd_str}")
+        logger.write(f"FAILED (exit {returncode}): {cmd_str}")
+        print(f"\n!!! COMMAND FAILED (exit {returncode}): {cmd_str}\n", flush=True)
         if not continue_on_error:
-            sys.exit(proc.returncode)
+            sys.exit(returncode)
     else:
         logger.write(f"OK: {cmd_str}")
-    return proc.returncode
+    return returncode
 
 
 def _ea_flag(ea: str) -> str:
