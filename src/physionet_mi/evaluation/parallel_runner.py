@@ -54,12 +54,27 @@ class ModelJob:
     arrays: dict[str, np.ndarray]
 
 
+def _sync_model_dims_from_arrays(cfg: ExperimentConfig, arrays: dict[str, np.ndarray]) -> None:
+    """Match deep-model input dims to preprocessed arrays (config YAML may use defaults)."""
+    X_dev = arrays.get("X_dev")
+    if X_dev is not None and getattr(X_dev, "ndim", 0) == 3:
+        cfg.model.n_channels = int(X_dev.shape[1])
+        cfg.model.n_times = int(X_dev.shape[2])
+        return
+    meta = arrays.get("meta") or {}
+    if "n_channels" in meta:
+        cfg.model.n_channels = int(meta["n_channels"])
+    if "model_n_times" in meta:
+        cfg.model.n_times = int(meta["model_n_times"])
+
+
 def _prepare_cfg(
     cfg_path: str,
     project_root: str,
     inner_n_jobs: int,
     split_seed: int,
     model_seed: int,
+    arrays: dict[str, np.ndarray] | None = None,
 ) -> ExperimentConfig:
     cfg = load_config(cfg_path, project_root=Path(project_root))
     cfg.split.random_state = int(split_seed)
@@ -67,6 +82,8 @@ def _prepare_cfg(
     cfg.csp_svm.seed = int(model_seed)
     if inner_n_jobs > 0:
         cfg.csp_svm.n_jobs = inner_n_jobs
+    if arrays is not None:
+        _sync_model_dims_from_arrays(cfg, arrays)
     return cfg
 
 
@@ -87,6 +104,7 @@ def _evaluate_job(job: ModelJob) -> dict[str, Any]:
         job.inner_n_jobs,
         job.split_seed,
         job.model_seed,
+        job.arrays,
     )
     tag = f"{job.model_name} ({job.protocol})"
     logger.info("Starting %s -> %s", tag, run_dir.name)
