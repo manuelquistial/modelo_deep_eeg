@@ -93,9 +93,17 @@ python scripts/generate_paper_tables.py
 python scripts/generate_paper_figures.py
 python scripts/generate_reproducibility_report.py
 python scripts/generate_paper_text_snippets.py
+python scripts/generate_final_experiment_report.py \
+  --results-root artifacts \
+  --legacy-results-root outputs \
+  --output-md artifacts/reports/final_experiment_report.md \
+  --output-json artifacts/reports/final_experiment_summary.json \
+  --artifact-index artifacts/reports/artifact_index.csv
 ```
 
 Outputs: `artifacts/paper/tables/`, `artifacts/paper/figures/`, `artifacts/reports/`
+
+The consolidated manuscript report is `artifacts/reports/final_experiment_report.md` (legacy path: `outputs_publishable/reports/` if symlinks are used).
 
 ## 9. Paperspace / full pipeline (resumable)
 

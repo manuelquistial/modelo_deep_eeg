@@ -22,6 +22,7 @@ PY = sys.executable
 from physionet_mi.evaluation.random_seeds import resolve_repeat_seeds  # noqa: E402
 from physionet_mi.paths import (  # noqa: E402
     artifacts_root,
+    baseline_runs_dir,
     cache_dir,
     ensure_artifact_tree,
     resolve_output_layout,
@@ -44,6 +45,7 @@ STAGE_ORDER = [
     "paper_figures",
     "reproducibility_report",
     "paper_text_snippets",
+    "final_experiment_report",
     "implementation_summary",
 ]
 
@@ -565,6 +567,7 @@ def main() -> None:
             "paper_figures",
             "reproducibility_report",
             "paper_text_snippets",
+            "final_experiment_report",
             "implementation_summary",
         ]
     elif args.stage == "data":
@@ -881,6 +884,30 @@ def main() -> None:
             ],
             logger=logger,
             stage="paper_text_snippets",
+            dataset="all",
+            dry_run=args.dry_run,
+            failed_csv=failed_csv,
+        )
+
+    if "final_experiment_report" in stages:
+        logger.section("STAGE 14: Generate final experiment report")
+        run_cmd(
+            [
+                PY,
+                "scripts/generate_final_experiment_report.py",
+                "--results-root",
+                str(layout["root"]),
+                "--legacy-results-root",
+                str(baseline_runs_dir(ROOT)),
+                "--output-md",
+                str(layout["reports"] / "final_experiment_report.md"),
+                "--output-json",
+                str(layout["reports"] / "final_experiment_summary.json"),
+                "--artifact-index",
+                str(layout["reports"] / "artifact_index.csv"),
+            ],
+            logger=logger,
+            stage="final_experiment_report",
             dataset="all",
             dry_run=args.dry_run,
             failed_csv=failed_csv,
