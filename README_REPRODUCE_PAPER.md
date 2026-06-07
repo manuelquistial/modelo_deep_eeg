@@ -105,6 +105,13 @@ Outputs: `artifacts/paper/tables/`, `artifacts/paper/figures/`, `artifacts/repor
 
 The consolidated manuscript report is `artifacts/reports/final_experiment_report.md` (legacy path: `outputs_publishable/reports/` if symlinks are used).
 
+If aggregate CSVs were overwritten by a partial rerun, rebuild them from existing run folders (no retraining):
+
+```bash
+python scripts/rebuild_repeated_holdout_csvs.py \
+  --repeated-holdout-root artifacts/runs/publishable/repeated_holdout
+```
+
 ## 9. Paperspace / full pipeline (resumable)
 
 ```bash
