@@ -56,6 +56,11 @@ def _make_info(ch_names: list[str], sfreq: float) -> mne.Info:
     return info
 
 
+def _adjust_topo_layout(fig, *, top: float = 0.90) -> None:
+    """Manual spacing; MNE topomap axes are not tight_layout-compatible."""
+    fig.subplots_adjust(left=0.06, right=0.90, top=top, bottom=0.08, wspace=0.20, hspace=0.30)
+
+
 def _plot_topo_panel(ax, values: np.ndarray, info: mne.Info, title: str, vmin, vmax):
     kwargs = dict(
         axes=ax,
@@ -135,11 +140,11 @@ def generate_topographic_figures(
         im = _plot_topo_panel(ax, vals, info, title, vmin, vmax)
         ims.append(im)
 
-    fig.suptitle(f"{MU_BAND_LABEL}\n({NOT_ERD_ERS})", fontsize=11, y=1.02)
+    fig.suptitle(f"{MU_BAND_LABEL}\n({NOT_ERD_ERS})", fontsize=11, y=0.98)
     if ims:
         cbar = fig.colorbar(ims[0], ax=axes.ravel().tolist(), fraction=0.025, pad=0.04)
         cbar.set_label("Mu-band power (a.u.)")
-    fig.tight_layout()
+    _adjust_topo_layout(fig, top=0.86)
     out["motor_imagery"] = save_figure(fig, output_stem)
     plt.close(fig)
 
@@ -159,10 +164,10 @@ def generate_topographic_figures(
         ims2 = []
         for ax, (vals, title) in zip(axes2.ravel(), ea_panels):
             ims2.append(_plot_topo_panel(ax, vals, info_phys, title, evmin, evmax))
-        fig2.suptitle(f"EA effect on {MU_BAND_LABEL} (PhysioNet)", fontsize=11)
+        fig2.suptitle(f"EA effect on {MU_BAND_LABEL} (PhysioNet)", fontsize=11, y=0.98)
         if ims2:
             fig2.colorbar(ims2[0], ax=axes2.ravel().tolist(), fraction=0.025, pad=0.04)
-        fig2.tight_layout()
+        _adjust_topo_layout(fig2, top=0.90)
         out["before_after_ea"] = save_figure(fig2, ea_stem)
         plt.close(fig2)
 
