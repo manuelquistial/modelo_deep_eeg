@@ -8,16 +8,21 @@ from pathlib import Path
 CAPTIONS: list[dict[str, str]] = [
     {
         "file": "fig_pipeline_architecture",
-        "short": "Benchmark pipeline from datasets to evaluation and auxiliary analyses.",
+        "short": "Left-to-right benchmark workflow with parallel EA ablation and subject-disjoint evaluation.",
         "long": (
-            "End-to-end workflow for the EEG motor-imagery benchmark. "
-            "PhysioNet MI and BNCI2014-001 undergo shared preprocessing with an optional "
-            "Euclidean Alignment (EA) ablation. Five decoders (CSP+SVM, FBCSP+LDA, Riemannian MDM, "
-            "Riemannian tangent-space logistic regression, and EEGNet) are evaluated under "
-            "repeated subject-disjoint hold-out (master\\_seed=42, ten repetitions). "
-            "Subjects never appear in both training and test partitions."
+            "Benchmark workflow for EEG motor-imagery decoding. "
+            "PhysioNet MI and BNCI2014-001 are preprocessed, partitioned into strictly "
+            "subject-disjoint DEV (train/validation) and TEST sets, and passed through parallel "
+            "No-EA and Euclidean Alignment (EA) branches. "
+            "Five decoders---CSP+SVM, FBCSP+LDA, Riemannian MDM, Riemannian tangent-space logistic "
+            "regression, and EEGNet---are evaluated with ten repeated hold-outs (master seed 42). "
+            "Statistical analysis comprises Wilcoxon tests for EA, Friedman tests with Holm "
+            "post-hoc comparisons, and bootstrap 95\\% confidence intervals."
         ),
-        "interpretation": "Establishes strict subject-disjoint evaluation and where EA enters the pipeline.",
+        "interpretation": (
+            "Clarifies preprocessing, the EA ablation fork, decoder comparison, and subject-disjoint "
+            "evaluation without trial leakage."
+        ),
         "section": "Methods",
     },
     {
