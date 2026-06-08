@@ -14,6 +14,29 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from physionet_mi.paths import baseline_runs_dir, paper_tables_dir, publishable_runs_dir  # noqa: E402
 
+MODEL_LABELS = {
+    "csp_svm": "CSP+SVM",
+    "fbcsp_lda": "FBCSP+LDA",
+    "riemann_mdm": "Riemann MDM",
+    "riemann_ts_lr": "Riemann TS+LR",
+    "eegnet": "EEGNet",
+}
+
+DATASET_LABELS = {
+    "physionet": "PhysioNet MI",
+    "bnci": "BNCI2014-001",
+    "bnci2014_001": "BNCI2014-001",
+}
+
+
+def _dataset_label(name: str) -> str:
+    key = str(name).lower()
+    if "bnci" in key:
+        return DATASET_LABELS["bnci"]
+    if "physionet" in key:
+        return DATASET_LABELS["physionet"]
+    return str(name)
+
 
 def main() -> None:
     p = argparse.ArgumentParser()
@@ -43,16 +66,30 @@ def main() -> None:
         "reproducible split seeds; mean ± SD across repetitions.\n\n"
     )
 
-    summary_files = list(results_root.glob("**/repeated_holdout_summary.csv"))
-    if not summary_files:
-        lines.append("Insufficient evidence: run repeated hold-out first.\n")
+    summary_paths = {
+        "physionet": results_root / "repeated_holdout" / "physionet" / "repeated_holdout_summary.csv",
+        "bnci": results_root / "repeated_holdout" / "bnci" / "repeated_holdout_summary.csv",
+    }
+    if not any(p.exists() for p in summary_paths.values()):
+        for sf in sorted(results_root.glob("**/repeated_holdout_summary.csv")):
+            key = "bnci" if "bnci" in sf.parent.name else "physionet"
+            summary_paths[key] = sf
+
+    loaded = {
+        key: pd.read_csv(path)
+        for key, path in summary_paths.items()
+        if path.exists()
+    }
+    if not loaded:
+        lines.append("Insufficient evidence: repeated hold-out summaries not found.\n")
     else:
-        for sf in summary_files:
-            df = pd.read_csv(sf)
-            if df.empty:
+        for key in ("physionet", "bnci"):
+            df = loaded.get(key)
+            if df is None or df.empty:
                 continue
-            ds = df["dataset"].iloc[0] if "dataset" in df.columns else sf.parent.name
-            if "use_ea" in df.columns:
+            ds_raw = df["dataset"].iloc[0] if "dataset" in df.columns else key
+            ds = _dataset_label(ds_raw)
+            if "use_ea" in df.columns and "balanced_accuracy_mean" in df.columns:
                 ea_grp = df.groupby("use_ea")["balanced_accuracy_mean"].mean()
                 if len(ea_grp) == 2:
                     lines.append(
@@ -60,11 +97,13 @@ def main() -> None:
                         f"changed mean balanced accuracy (EA={ea_grp.get(True, float('nan')):.3f} vs "
                         f"no-EA={ea_grp.get(False, float('nan')):.3f}).\n"
                     )
-            best = df.loc[df["balanced_accuracy_mean"].idxmax()] if "balanced_accuracy_mean" in df.columns else None
-            if best is not None:
+            if "balanced_accuracy_mean" in df.columns:
+                best = df.loc[df["balanced_accuracy_mean"].idxmax()]
+                model_name = MODEL_LABELS.get(str(best["model"]), str(best["model"]))
+                ea_flag = "with EA" if bool(best["use_ea"]) else "without EA"
                 lines.append(
-                    f"- On {ds}, {best['model']} (EA={best['use_ea']}) achieved the highest mean balanced "
-                    f"accuracy ({best['balanced_accuracy_mean']:.3f} ± {best.get('balanced_accuracy_std', 0):.3f}).\n"
+                    f"- On {ds}, {model_name} ({ea_flag}) achieved the highest mean balanced "
+                    f"accuracy ({best['balanced_accuracy_mean']:.3f} ± {best['balanced_accuracy_std']:.3f}).\n"
                 )
 
     fixed = baseline_runs_dir(ROOT) / "pipeline_comparison.csv"
@@ -97,14 +136,19 @@ def main() -> None:
                 f"(std of mean subject accuracy ≈ {std_acc:.3f}).\n"
             )
 
-    lat = list(results_root.glob("**/lateralization_vs_accuracy.csv"))
-    if lat:
-        ldf = pd.read_csv(lat[0])
-        sig = ldf[ldf["pearson_p"] < 0.05] if "pearson_p" in ldf.columns else pd.DataFrame()
-        if len(sig):
+    lat_files = list(results_root.glob("**/lateralization_vs_accuracy.csv"))
+    if lat_files:
+        sig_models: list[str] = []
+        for lat_path in lat_files:
+            ldf = pd.read_csv(lat_path)
+            if "pearson_p" not in ldf.columns:
+                continue
+            for _, row in ldf[ldf["pearson_p"] < 0.05].iterrows():
+                sig_models.append(f"{row['model']} ({lat_path.parent.parent.name})")
+        if sig_models:
             lines.append(
-                "- Lateralization analysis showed significant correlation between mu-band lateralization "
-                "and subject-level accuracy for some models.\n"
+                "- Mu-band lateralization correlated significantly with subject-level accuracy for "
+                f"{', '.join(sig_models)}; other models showed weak or non-significant coupling.\n"
             )
         else:
             lines.append(
