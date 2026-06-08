@@ -57,11 +57,17 @@ def _make_info(ch_names: list[str], sfreq: float) -> mne.Info:
 
 
 def _plot_topo_panel(ax, values: np.ndarray, info: mne.Info, title: str, vmin, vmax):
-    im, _ = mne.viz.plot_topomap(
-        values, info, axes=ax, show=False,
-        vmin=vmin, vmax=vmax, contours=0, sensors=True,
-        extrapolate="head", image_interp="cubic",
+    kwargs = dict(
+        axes=ax,
+        show=False,
+        contours=0,
+        sensors=True,
+        extrapolate="head",
+        image_interp="cubic",
     )
+    if vmin is not None or vmax is not None:
+        kwargs["vlim"] = (vmin, vmax)
+    im, _ = mne.viz.plot_topomap(values, info, **kwargs)
     ax.set_title(title, fontsize=10)
     return im
 
