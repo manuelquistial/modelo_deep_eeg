@@ -20,7 +20,26 @@ MU_BAND_LABEL = "8–13 Hz mu-band power topography"
 NOT_ERD_ERS = "Not baseline-corrected ERD/ERS"
 
 
-def _load_cache_arrays(cache_dir: Path) -> dict | None:
+def _pick_dataset_cache(cache_root: Path, dataset: str, *, use_ea: bool = False) -> Path | None:
+    """Return the largest hold-out cache for a dataset and EA flag."""
+    ea_flag = "ea" if use_ea else "no_ea"
+    ds = dataset.replace("/", "_")
+    candidates = [
+        path
+        for path in cache_root.glob(f"{ds}_lr_{ea_flag}_*")
+        if (path / "meta.json").exists() and (path / "holdout").exists()
+    ]
+    if not candidates:
+        return None
+    return max(
+        candidates,
+        key=lambda path: json.loads((path / "meta.json").read_text(encoding="utf-8"))["n_subjects"],
+    )
+
+
+def _load_cache_arrays(cache_dir: Path | None) -> dict | None:
+    if cache_dir is None:
+        return None
     holdout = cache_dir / "holdout"
     meta_path = cache_dir / "meta.json"
     if not holdout.exists() or not meta_path.exists():
@@ -107,8 +126,7 @@ def generate_topographic_figures(
     neuro_root = artifacts_root / "runs" / "publishable" / "neurophysiology"
     out: dict[str, tuple[Path, Path] | None] = {"motor_imagery": None, "before_after_ea": None}
 
-    phys_cache = cache_root / "physionet_lr_no_ea_108sub_all"
-    phys_data = _load_cache_arrays(phys_cache)
+    phys_data = _load_cache_arrays(_pick_dataset_cache(cache_root, "physionet", use_ea=False))
     bnci_trial = neuro_root / "bnci" / "erd_ers_trial_level.csv"
 
     if phys_data is None:
@@ -119,24 +137,35 @@ def generate_topographic_figures(
     info_phys = _make_info(ch_phys, sfreq_phys)
 
     panels = []
+    panel_infos = []
     for label_idx, label_name in [(0, "left_hand"), (1, "right_hand")]:
         vals = _mean_mu_topography(phys_data["X"], phys_data["y"], label_idx, sfreq_phys)
         panels.append((vals, f"PhysioNet — {label_name.replace('_', ' ')}"))
+        panel_infos.append(info_phys)
 
-    ch_bnci = list(BNCI2014_001_CHANNEL_NAMES)
-    info_bnci = _make_info(ch_bnci, 125.0)
-    if bnci_trial.exists():
+    bnci_data = _load_cache_arrays(_pick_dataset_cache(cache_root, "bnci2014_001", use_ea=False))
+    if bnci_data is not None:
+        ch_bnci = bnci_data["meta"]["ch_names"]
+        sfreq_bnci = float(bnci_data["meta"].get("sfreq", 125.0))
+        info_bnci = _make_info(ch_bnci, sfreq_bnci)
+        for label_idx, label_name in [(0, "left_hand"), (1, "right_hand")]:
+            vals = _mean_mu_topography(bnci_data["X"], bnci_data["y"], label_idx, sfreq_bnci)
+            panels.append((vals, f"BNCI — {label_name.replace('_', ' ')}"))
+            panel_infos.append(info_bnci)
+    elif bnci_trial.exists():
+        ch_bnci = list(BNCI2014_001_CHANNEL_NAMES)
+        info_bnci = _make_info(ch_bnci, 125.0)
         for label in ("left_hand", "right_hand"):
             vals = _bnci_sparse_topography(bnci_trial, label, use_ea=True, ch_names=ch_bnci)
             panels.append((vals, f"BNCI — {label.replace('_', ' ')}"))
+            panel_infos.append(info_bnci)
 
     all_finite = [v for v, _ in panels for v in v[np.isfinite(v)]]
     vmin, vmax = np.percentile(all_finite, [5, 95]) if all_finite else (None, None)
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
     ims = []
-    infos = [info_phys, info_phys, info_bnci, info_bnci] if len(panels) == 4 else [info_phys] * len(panels)
-    for ax, (vals, title), info in zip(axes.ravel(), panels, infos):
+    for ax, (vals, title), info in zip(axes.ravel(), panels, panel_infos):
         im = _plot_topo_panel(ax, vals, info, title, vmin, vmax)
         ims.append(im)
 
@@ -149,8 +178,8 @@ def generate_topographic_figures(
     plt.close(fig)
 
     # Before vs after EA (PhysioNet full scalp; BNCI sparse if CSV available)
-    phys_no = _load_cache_arrays(cache_root / "physionet_lr_no_ea_108sub_all")
-    phys_ea = _load_cache_arrays(cache_root / "physionet_lr_ea_108sub_all")
+    phys_no = _load_cache_arrays(_pick_dataset_cache(cache_root, "physionet", use_ea=False))
+    phys_ea = _load_cache_arrays(_pick_dataset_cache(cache_root, "physionet", use_ea=True))
     if phys_no and phys_ea and ea_stem:
         fig2, axes2 = plt.subplots(2, 2, figsize=(10, 7))
         ea_panels = [
